@@ -2,18 +2,16 @@ name: Deploy to Railway
 
 on:
   push:
-    branches:
-      - main
+    branches: [main]
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
-      
+      - uses: actions/checkout@v4
+      - name: Install Railway CLI
+        run: npm install -g @railway/cli
       - name: Deploy to Railway
-        run: |
-          npm install -g @railway/cli
-          railway deploy --force
+        run: railway up --service almoxarifado
         env:
           RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
