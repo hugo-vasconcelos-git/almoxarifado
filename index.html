@@ -129,6 +129,19 @@
   .modal-btn{background:var(--accent);border:none;border-radius:8px;color:#fff;font-weight:700;font-size:15px;padding:12px;cursor:pointer;transition:opacity .15s;}
   .modal-btn:active{opacity:.8;}
   .modal-btn:disabled{opacity:.35;cursor:not-allowed;}
+  .modal-btn.ghost{background:transparent;border:1px solid var(--border);color:var(--muted);}
+
+  /* ── MODAL QUANTIDADE ── */
+  #modalQty{position:fixed;inset:0;background:rgba(0,0,0,.8);z-index:300;display:none;flex-direction:column;align-items:center;justify-content:center;padding:20px;}
+  #modalQty.active{display:flex;}
+  .modal-qty-box{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:24px;width:100%;max-width:300px;display:flex;flex-direction:column;gap:14px;}
+  .modal-qty-sku{font-family:var(--mono);font-size:13px;color:var(--muted);word-break:break-all;}
+  .modal-qty-label{font-size:12px;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);font-weight:600;}
+  .modal-qty-input{background:var(--bg);border:2px solid var(--accent);border-radius:8px;color:var(--text);font-family:var(--mono);font-size:28px;font-weight:600;padding:12px;text-align:center;outline:none;}
+  .modal-qty-buttons{display:flex;gap:10px;}
+  .modal-qty-buttons button{flex:1;padding:12px;border:none;border-radius:8px;font-weight:700;cursor:pointer;transition:opacity .15s;}
+  .modal-qty-confirm{background:var(--green);color:#111;}
+  .modal-qty-cancel{background:var(--border);color:var(--muted);}
 </style>
 </head>
 <body>
@@ -271,6 +284,20 @@
   </div>
 </div>
 
+<!-- MODAL QUANTIDADE -->
+<div id="modalQty">
+  <div class="modal-qty-box">
+    <div class="modal-qty-label">SKU lido</div>
+    <div class="modal-qty-sku" id="modalQtySku">—</div>
+    <div class="modal-qty-label">Confirmar quantidade</div>
+    <input type="number" class="modal-qty-input" id="modalQtyInput" min="1" value="1">
+    <div class="modal-qty-buttons">
+      <button class="modal-qty-confirm" onclick="confirmarQty()">✓ Confirmar</button>
+      <button class="modal-qty-cancel" onclick="cancelarQty()">✕ Cancelar</button>
+    </div>
+  </div>
+</div>
+
 <!-- ZXing para leitura de QR via câmera (melhor para etiquetas densas) -->
 <script src="https://unpkg.com/@zxing/library@0.19.1/umd/index.min.js"></script>
 
@@ -403,6 +430,7 @@ function processar(raw) {
 
 // Formato Audax: SKU-QUANTIDADE-INCREMENTAL  (ex: 21610954600101-123-136050)
 // Também aceita: SKU|QUANTIDADE ou só SKU
+let _qtyTempo = { sku: null, incremental: null }; // armazenar dados temporários
 function processarItem(raw) {
   let sku, qty, incremental = null;
   const partesDash = raw.split('-');
@@ -432,7 +460,30 @@ function processarItem(raw) {
     lidos.add(incremental);
   }
 
+  // Armazena dados temporários e abre modal para confirmar quantidade
+  _qtyTempo.sku = sku;
+  _qtyTempo.incremental = incremental;
+  abrirModalQty(sku, qty);
+}
+
+function abrirModalQty(sku, qty) {
+  document.getElementById('modalQtySku').textContent = sku;
+  document.getElementById('modalQtyInput').value = qty;
+  document.getElementById('modalQty').classList.add('active');
+  document.getElementById('modalQtyInput').focus();
+  document.getElementById('modalQtyInput').select();
+}
+
+function confirmarQty() {
+  const sku = _qtyTempo.sku;
+  const qty = parseFloat(document.getElementById('modalQtyInput').value) || 1;
+  document.getElementById('modalQty').classList.remove('active');
   adicionarItem(sku, qty);
+}
+
+function cancelarQty() {
+  document.getElementById('modalQty').classList.remove('active');
+  _qtyTempo = { sku: null, incremental: null };
 }
 
 function adicionarItem(sku, qty) {
@@ -740,6 +791,11 @@ document.addEventListener('DOMContentLoaded',()=>{
 
   // Mostrar modal de login se necessário
   setTimeout(() => mostrarModalLogin(), 100);
+
+  // Enter na modal de quantidade
+  document.getElementById('modalQtyInput').addEventListener('keydown', e => {
+    if (e.key === 'Enter') confirmarQty();
+  });
 });
 </script>
 </body>
