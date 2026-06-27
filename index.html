@@ -247,8 +247,8 @@
 
 <div id="toast"></div>
 
-<!-- ZXing — lê QR Codes densos, Data Matrix e códigos de barras industriais -->
-<script src="https://unpkg.com/@zxing/library@0.19.1/umd/index.min.js"></script>
+<!-- jsQR para leitura de QR via câmera -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jsqr/1.4.0/jsQR.min.js"></script>
 
 <script>
 /* ══════════════════════════════════
@@ -327,49 +327,51 @@ function abrirSelecionado() {
 }
 
 /* ══════════════════════════════════
-   CÂMERA (ZXing — lê QR densos)
+   CÂMERA (só para itens)
 ══════════════════════════════════ */
-let zxingReader = null;
-
 async function abrirCamera() {
   const overlay = document.getElementById('cameraOverlay');
-  document.getElementById('camLabel').textContent = 'Aponte para o QR Code da etiqueta';
-  overlay.classList.add('active');
-
+  const video   = document.getElementById('video');
+  document.getElementById('camLabel').textContent = 'Bipe o QR do item (SKU|Qty)';
   try {
-    const hints = new Map();
-    const formats = [
-      ZXing.BarcodeFormat.QR_CODE,
-      ZXing.BarcodeFormat.DATA_MATRIX,
-      ZXing.BarcodeFormat.CODE_128,
-      ZXing.BarcodeFormat.CODE_39,
-    ];
-    hints.set(ZXing.DecodeHintType.POSSIBLE_FORMATS, formats);
-    hints.set(ZXing.DecodeHintType.TRY_HARDER, true);
-
-    zxingReader = new ZXing.BrowserMultiFormatReader(hints);
-
-    const devices = await ZXing.BrowserMultiFormatReader.listVideoInputDevices();
-    // Prefere câmera traseira
-    const back = devices.find(d => /back|rear|environment/i.test(d.label)) || devices[devices.length - 1];
-    const deviceId = back ? back.deviceId : undefined;
-
-    await zxingReader.decodeFromVideoDevice(deviceId, 'video', (result, err) => {
-      if (result) {
-        fecharCamera();
-        processar(result.getText().trim().toUpperCase());
-      }
-      // err é normal quando não encontra QR — ignora
+    videoStream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode:'environment', width:{ideal:1280}, height:{ideal:720} }
     });
+    video.srcObject = videoStream;
+    overlay.classList.add('active');
+    scanAtivo = true;
+    requestAnimationFrame(tickScan);
   } catch(e) {
-    fecharCamera();
     showToast('❌ Câmera não disponível — use o campo manual', 'err');
   }
 }
 
 function fecharCamera() {
-  if (zxingReader) { zxingReader.reset(); zxingReader = null; }
+  scanAtivo = false;
+  if (videoStream) { videoStream.getTracks().forEach(t=>t.stop()); videoStream=null; }
   document.getElementById('cameraOverlay').classList.remove('active');
+}
+
+function tickScan() {
+  if (!scanAtivo) return;
+  const video  = document.getElementById('video');
+  const canvas = document.getElementById('qrCanvas');
+  if (video.readyState !== video.HAVE_ENOUGH_DATA) { requestAnimationFrame(tickScan); return; }
+
+  canvas.width  = video.videoWidth;
+  canvas.height = video.videoHeight;
+  const ctx = canvas.getContext('2d');
+  ctx.drawImage(video, 0, 0);
+
+  const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+  const code = jsQR(imageData.data, imageData.width, imageData.height, { inversionAttempts:'dontInvert' });
+
+  if (code && code.data) {
+    fecharCamera();
+    processar(code.data.trim().toUpperCase());
+  } else {
+    requestAnimationFrame(tickScan);
+  }
 }
 
 /* ══════════════════════════════════
@@ -393,7 +395,6 @@ function processar(raw) {
 }
 
 function processarItem(raw) {
-  // Formato Audax: só SKU, ou SKU|QTY
   const partes = raw.split(SEP);
   const sku    = partes[0].trim();
   const qty    = parseFloat(partes[1]) || 1;
@@ -402,10 +403,10 @@ function processarItem(raw) {
   const existe = !!itens[sku];
   if (existe) {
     itens[sku].qty += qty;
-    showToast(`➕ ${sku} → ${itens[sku].qty}`, 'ok');
+    showToast(`➕ ${sku} → ${itens[sku].qty} un`, 'ok');
   } else {
     itens[sku] = { sku, qty, um:'UN' };
-    showToast(`✅ ${sku} · ${qty}`, 'ok');
+    showToast(`✅ ${sku} · ${qty} un`, 'ok');
   }
 
   renderLista(sku);
