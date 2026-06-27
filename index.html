@@ -21,7 +21,8 @@
   .logo{font-family:var(--mono);font-size:13px;letter-spacing:.1em;color:var(--accent);}
   .logo span{color:var(--muted);}
   .header-right{display:flex;align-items:center;gap:8px;}
-  .badge{background:var(--border);border-radius:12px;padding:4px 10px;font-family:var(--mono);font-size:11px;color:var(--muted);}
+  .badge{background:var(--border);border-radius:12px;padding:4px 10px;font-family:var(--mono);font-size:11px;color:var(--muted);border:none;cursor:pointer;transition:all .2s;}
+  .badge:hover{background:var(--accent);color:#fff;}
   .badge.open{background:color-mix(in srgb,var(--accent) 20%,transparent);color:var(--accent);}
   .badge.ready{background:color-mix(in srgb,var(--green) 20%,transparent);color:var(--green);}
 
@@ -160,6 +161,7 @@
 <div class="header">
   <div class="logo">Almox<span> · </span>Inventário</div>
   <div class="header-right">
+    <button class="badge" id="sb1Badge" onclick="document.getElementById('sb1FileInput').click()" title="Clique para recarregar SB1">📦 SB1</button>
     <span class="badge" id="statBadge">Sem endereço</span>
   </div>
 </div>
@@ -552,14 +554,25 @@ function ativarLeitorUsb() {
 }
 
 function adicionarItem(sku, qty) {
+  // Buscar dados do SB1 se existir
+  const produtoSB1 = sb1Data[sku];
+  let nome = produtoSB1 ? produtoSB1.B1_DESC || produtoSB1.descricao || '' : '';
+  let um = produtoSB1 ? (produtoSB1.B1_UM || produtoSB1.um || 'UN') : 'UN';
+
+  // Validar SKU
+  if (Object.keys(sb1Data).length > 0 && !produtoSB1) {
+    showToast(`❌ SKU não encontrado na SB1: ${sku}`, 'err');
+    return;
+  }
 
   const existe = !!itens[sku];
   if (existe) {
     itens[sku].qty += qty;
-    showToast(`➕ ${sku} → ${itens[sku].qty} un`, 'ok');
+    showToast(`➕ ${sku} → ${itens[sku].qty} ${itens[sku].um}`, 'ok');
   } else {
-    itens[sku] = { sku, qty, um:'UN' };
-    showToast(`✅ ${sku} · ${qty} un`, 'ok');
+    itens[sku] = { sku, qty, um, nome };
+    const msgNome = nome ? ` - ${nome}` : '';
+    showToast(`✅ ${sku}${msgNome}`, 'ok');
   }
 
   renderLista(sku);
@@ -662,8 +675,12 @@ function renderLista(highlightSku='') {
     row.className='item-row'+(item.sku===highlightSku?' flash':'');
     row.id='row-'+item.sku;
     row.style.cursor='pointer';
+    const nomeHTML = item.nome ? `<div style="font-size:11px;color:var(--muted);margin-top:4px;">${item.nome}</div>` : '';
     row.innerHTML=`
-      <div class="item-sku">${item.sku}</div>
+      <div class="item-sku">
+        ${item.sku}
+        ${nomeHTML}
+      </div>
       <div class="item-qty-wrap" onclick="editarQtyItem('${item.sku}')" style="cursor:pointer;">
         <span class="item-qty">${item.qty}</span>
         <span class="item-um">${item.um}</span>
@@ -779,16 +796,26 @@ function gerarTexto() {
   });
 
   // Header da tabela
-  linhas.push('CODIGO              | QTDE        | ENDEREÇO');
-  linhas.push('─'.repeat(52));
-
-  // Linhas de dados
-  allItems.forEach(item => {
-    const sku = item.sku.padEnd(19);
-    const qty = `${item.qty} ${item.um}`.padEnd(11);
-    const endereco = item.endereco;
-    linhas.push(`${sku} | ${qty} | ${endereco}`);
-  });
+  const temNomes = allItems.some(i => i.nome);
+  if (temNomes) {
+    linhas.push('CODIGO       | QTDE        | DESCRIÇÃO');
+    linhas.push('─'.repeat(70));
+    allItems.forEach(item => {
+      const sku = item.sku.padEnd(12);
+      const qty = `${item.qty} ${item.um}`.padEnd(11);
+      const nome = item.nome || item.endereco;
+      linhas.push(`${sku} | ${qty} | ${nome}`);
+    });
+  } else {
+    linhas.push('CODIGO              | QTDE        | ENDEREÇO');
+    linhas.push('─'.repeat(52));
+    allItems.forEach(item => {
+      const sku = item.sku.padEnd(19);
+      const qty = `${item.qty} ${item.um}`.padEnd(11);
+      const endereco = item.endereco;
+      linhas.push(`${sku} | ${qty} | ${endereco}`);
+    });
+  }
 
   linhas.push('');
   linhas.push('═'.repeat(52));
@@ -896,6 +923,7 @@ function carregarSB1(event) {
       btn.classList.add('loaded');
       btn.textContent = `✓ ${file.name} carregado (${Object.keys(sb1Data).length} produtos)`;
       document.getElementById('sb1BtnOk').disabled = false;
+      atualizarBadgeSB1();
       showToast(`✓ ${Object.keys(sb1Data).length} produtos carregados!`, 'ok');
     } catch (err) {
       showToast('❌ Erro ao ler JSON: ' + err.message, 'err');
@@ -906,7 +934,20 @@ function carregarSB1(event) {
 
 function confirmaSB1() {
   document.getElementById('modalSB1').classList.remove('active');
+  atualizarBadgeSB1();
   showToast('✓ SB1 configurado!', 'ok');
+}
+
+function atualizarBadgeSB1() {
+  const badge = document.getElementById('sb1Badge');
+  const count = Object.keys(sb1Data).length;
+  if (count > 0) {
+    badge.classList.add('ready');
+    badge.textContent = `✓ SB1 (${count})`;
+  } else {
+    badge.classList.remove('ready');
+    badge.textContent = '📦 SB1';
+  }
 }
 
 function carregarSB1DoLocal() {
@@ -974,6 +1015,7 @@ document.addEventListener('DOMContentLoaded',()=>{
 
   // Carregar SB1 do localStorage
   carregarSB1DoLocal();
+  atualizarBadgeSB1();
 
   // Mostrar modais de configuração se necessário
   setTimeout(() => {
