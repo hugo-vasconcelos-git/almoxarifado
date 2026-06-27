@@ -434,7 +434,7 @@ function processar(raw) {
 
 // Formato Audax: SKU-QUANTIDADE-INCREMENTAL  (ex: 21610954600101-123-136050)
 // Também aceita: SKU|QUANTIDADE ou só SKU
-let _qtyTempo = { sku: null, incremental: null }; // armazenar dados temporários
+let _qtyTempo = { sku: null, incremental: null, editandoSku: null }; // armazenar dados temporários
 function processarItem(raw) {
   let sku, qty, incremental = null;
   const partesDash = raw.split('-');
@@ -464,10 +464,8 @@ function processarItem(raw) {
     lidos.add(incremental);
   }
 
-  // Armazena dados temporários e abre modal para confirmar quantidade
-  _qtyTempo.sku = sku;
-  _qtyTempo.incremental = incremental;
-  abrirModalQty(sku, qty);
+  // Adiciona direto à lista (sem modal)
+  adicionarItem(sku, qty);
 }
 
 function abrirModalQty(sku, qty) {
@@ -638,9 +636,10 @@ function renderLista(highlightSku='') {
     const row=document.createElement('div');
     row.className='item-row'+(item.sku===highlightSku?' flash':'');
     row.id='row-'+item.sku;
+    row.style.cursor='pointer';
     row.innerHTML=`
       <div class="item-sku">${item.sku}</div>
-      <div class="item-qty-wrap">
+      <div class="item-qty-wrap" onclick="editarQtyItem('${item.sku}')" style="cursor:pointer;">
         <span class="item-qty">${item.qty}</span>
         <span class="item-um">${item.um}</span>
       </div>
@@ -654,6 +653,45 @@ function remover(sku) {
   delete itens[sku];
   renderLista();
   atualizarStatus();
+}
+
+function editarQtyItem(sku) {
+  const item = itens[sku];
+  if (!item) return;
+
+  // Reutiliza modal de quantidade para edição
+  document.getElementById('modalQtySku').textContent = sku;
+  document.getElementById('modalQtyInput').value = item.qty;
+  document.getElementById('modalQty').classList.add('active');
+
+  // Muda comportamento do botão confirmar temporariamente
+  const input = document.getElementById('modalQtyInput');
+  input.focus();
+  input.select();
+
+  // Armazena que é edição (não leitura nova)
+  _qtyTempo.editandoSku = sku;
+}
+
+// Modifica confirmarQty para também funcionar em edição
+const originalConfirmarQty = confirmarQty;
+function confirmarQty() {
+  const input = document.getElementById('modalQtyInput');
+  const novaQty = parseFloat(input.value) || 1;
+
+  if (_qtyTempo.editandoSku) {
+    // Modo edição
+    const sku = _qtyTempo.editandoSku;
+    itens[sku].qty = novaQty;
+    _qtyTempo.editandoSku = null;
+    renderLista();
+    atualizarStatus();
+    document.getElementById('modalQty').classList.remove('active');
+    showToast(`✏️ ${sku} → ${novaQty} un`, 'ok');
+  } else {
+    // Modo leitura (novo item)
+    originalConfirmarQty();
+  }
 }
 
 function renderLog() {
