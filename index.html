@@ -261,6 +261,7 @@ let fase        = 'idle';
 let ruaAtual    = '';
 let pratAtual   = '';
 let itens       = {};
+let lidos       = new Set(); // incrementais já lidos neste endereço
 let log         = [];
 let ruaSel      = '';
 
@@ -379,14 +380,15 @@ function processar(raw) {
 // Formato Audax: SKU-QUANTIDADE-INCREMENTAL  (ex: 21610954600101-123-136050)
 // Também aceita: SKU|QUANTIDADE ou só SKU
 function processarItem(raw) {
-  let sku, qty;
+  let sku, qty, incremental = null;
   const partesDash = raw.split('-');
   const partesPipe = raw.split('|');
 
   if (partesDash.length >= 2 && /^\d{10,}$/.test(partesDash[0])) {
-    // Formato Audax: primeiro campo numérico longo = SKU
-    sku = partesDash[0].trim();
-    qty = parseFloat(partesDash[1]) || 1;
+    // Formato Audax
+    sku         = partesDash[0].trim();
+    qty         = parseFloat(partesDash[1]) || 1;
+    incremental = partesDash[2] ? partesDash[2].trim() : null;
   } else if (partesPipe.length >= 2) {
     sku = partesPipe[0].trim();
     qty = parseFloat(partesPipe[1]) || 1;
@@ -396,6 +398,16 @@ function processarItem(raw) {
   }
 
   if (!sku) { showToast('Código inválido', 'err'); return; }
+
+  // Bloqueia etiqueta duplicada pelo número incremental
+  if (incremental) {
+    if (lidos.has(incremental)) {
+      showToast(`⚠️ Etiqueta já lida! (${sku})`, 'warn');
+      return;
+    }
+    lidos.add(incremental);
+  }
+
   adicionarItem(sku, qty);
 }
 
@@ -418,7 +430,7 @@ function adicionarItem(sku, qty) {
    ABRIR / FECHAR
 ══════════════════════════════════ */
 function abrirEndereco(rua, prat) {
-  fase = 'open'; ruaAtual = rua; pratAtual = prat; itens = {};
+  fase = 'open'; ruaAtual = rua; pratAtual = prat; itens = {}; lidos = new Set();
   document.getElementById('seletorEndereco').style.display = 'none';
   document.getElementById('secaoItens').style.display      = 'flex';
   atualizarStatus();
@@ -451,7 +463,7 @@ function fecharEndereco() {
    RENDER
 ══════════════════════════════════ */
 function cancelar(silencioso=false) {
-  fase = 'idle'; ruaAtual = ''; pratAtual = ''; itens = {}; ruaSel = '';
+  fase = 'idle'; ruaAtual = ''; pratAtual = ''; itens = {}; lidos = new Set(); ruaSel = '';
   document.querySelectorAll('.rua-cel').forEach(c=>c.classList.remove('sel'));
   document.getElementById('selPrateleira').value = '';
   document.getElementById('btnAbrir').disabled = true;
