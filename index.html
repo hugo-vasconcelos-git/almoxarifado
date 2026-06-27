@@ -415,14 +415,13 @@ function fecharCamera() {
 ══════════════════════════════════ */
 function processarManual() {
   const skuEl = document.getElementById('manualSku');
-  const qtyEl = document.getElementById('manualQty');
-  const sku = skuEl.value.trim().toUpperCase();
-  const qty = parseFloat(qtyEl.value) || 1;
-  if (!sku) return;
+  const raw = skuEl.value.trim().toUpperCase();
+  if (!raw) return;
   if (fase !== 'open') { showToast('Abra um endereço primeiro', 'warn'); return; }
-  adicionarItem(sku, qty);
+  // Chama processarItem para fazer parse correto de SKU-QTY-INCREMENTAL
+  processarItem(raw);
   skuEl.value = '';
-  qtyEl.value = '1';
+  document.getElementById('manualQty').value = '1';
   skuEl.focus();
 }
 
