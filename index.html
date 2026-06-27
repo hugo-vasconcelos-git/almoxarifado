@@ -559,20 +559,21 @@ function adicionarItem(sku, qty) {
   let nome = produtoSB1 ? produtoSB1.B1_DESC || produtoSB1.descricao || '' : '';
   let um = produtoSB1 ? (produtoSB1.B1_UM || produtoSB1.um || 'UN') : 'UN';
 
-  // Validar SKU
+  // Se SB1 carregado mas SKU não encontrado, avisar mas permitir adicionar
+  let aviso = '';
   if (Object.keys(sb1Data).length > 0 && !produtoSB1) {
-    showToast(`❌ SKU não encontrado na SB1: ${sku}`, 'err');
-    return;
+    aviso = ' ⚠️ Não encontrado na SB1';
   }
 
   const existe = !!itens[sku];
   if (existe) {
     itens[sku].qty += qty;
-    showToast(`➕ ${sku} → ${itens[sku].qty} ${itens[sku].um}`, 'ok');
+    showToast(`➕ ${sku} → ${itens[sku].qty} ${itens[sku].um}${aviso}`, 'warn');
   } else {
     itens[sku] = { sku, qty, um, nome };
     const msgNome = nome ? ` - ${nome}` : '';
-    showToast(`✅ ${sku}${msgNome}`, 'ok');
+    const tipo = aviso ? 'warn' : 'ok';
+    showToast(`✅ ${sku}${msgNome}${aviso}`, tipo);
   }
 
   renderLista(sku);
