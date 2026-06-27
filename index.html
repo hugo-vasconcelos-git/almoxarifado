@@ -247,15 +247,15 @@
 
 <div id="toast"></div>
 
-<!-- jsQR para leitura de QR via câmera -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jsqr/1.4.0/jsQR.min.js"></script>
+<!-- ZXing para leitura de QR via câmera (melhor para etiquetas densas) -->
+<script src="https://unpkg.com/@zxing/library@0.19.1/umd/index.min.js"></script>
 
 <script>
 /* ══════════════════════════════════
    STATE
 ══════════════════════════════════ */
 const RUAS = ['A','B','C','D','E','F','G','H','I','J','K','L','M','N','O'];
-const SEP  = '|';
+let zxingReader = null;
 
 let fase        = 'idle';
 let ruaAtual    = '';
@@ -264,8 +264,6 @@ let itens       = {};
 let log         = [];
 let ruaSel      = '';
 
-let videoStream = null;
-let scanAtivo   = false;
 
 /* ══════════════════════════════════
    TABS
@@ -327,51 +325,34 @@ function abrirSelecionado() {
 }
 
 /* ══════════════════════════════════
-   CÂMERA (só para itens)
+   CÂMERA — ZXing (só para itens)
 ══════════════════════════════════ */
 async function abrirCamera() {
-  const overlay = document.getElementById('cameraOverlay');
-  const video   = document.getElementById('video');
-  document.getElementById('camLabel').textContent = 'Bipe o QR do item (SKU|Qty)';
+  document.getElementById('camLabel').textContent = 'Aponte para a etiqueta';
+  document.getElementById('cameraOverlay').classList.add('active');
   try {
-    videoStream = await navigator.mediaDevices.getUserMedia({
-      video: { facingMode:'environment', width:{ideal:1280}, height:{ideal:720} }
-    });
-    video.srcObject = videoStream;
-    overlay.classList.add('active');
-    scanAtivo = true;
-    requestAnimationFrame(tickScan);
+    const hints = new Map();
+    hints.set(ZXing.DecodeHintType.TRY_HARDER, true);
+    zxingReader = new ZXing.BrowserMultiFormatReader(hints);
+    await zxingReader.decodeFromVideoDevice(
+      null,
+      'video',
+      (result, err) => {
+        if (result) {
+          fecharCamera();
+          processar(result.getText().trim().toUpperCase());
+        }
+      }
+    );
   } catch(e) {
     showToast('❌ Câmera não disponível — use o campo manual', 'err');
+    fecharCamera();
   }
 }
 
 function fecharCamera() {
-  scanAtivo = false;
-  if (videoStream) { videoStream.getTracks().forEach(t=>t.stop()); videoStream=null; }
+  if (zxingReader) { zxingReader.reset(); zxingReader = null; }
   document.getElementById('cameraOverlay').classList.remove('active');
-}
-
-function tickScan() {
-  if (!scanAtivo) return;
-  const video  = document.getElementById('video');
-  const canvas = document.getElementById('qrCanvas');
-  if (video.readyState !== video.HAVE_ENOUGH_DATA) { requestAnimationFrame(tickScan); return; }
-
-  canvas.width  = video.videoWidth;
-  canvas.height = video.videoHeight;
-  const ctx = canvas.getContext('2d');
-  ctx.drawImage(video, 0, 0);
-
-  const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-  const code = jsQR(imageData.data, imageData.width, imageData.height, { inversionAttempts:'dontInvert' });
-
-  if (code && code.data) {
-    fecharCamera();
-    processar(code.data.trim().toUpperCase());
-  } else {
-    requestAnimationFrame(tickScan);
-  }
 }
 
 /* ══════════════════════════════════
@@ -380,10 +361,11 @@ function tickScan() {
 function processarManual() {
   const skuEl = document.getElementById('manualSku');
   const qtyEl = document.getElementById('manualQty');
-  const raw = skuEl.value.trim().toUpperCase();
+  const sku = skuEl.value.trim().toUpperCase();
   const qty = parseFloat(qtyEl.value) || 1;
-  if (!raw) return;
-  processar(raw + SEP + qty);
+  if (!sku) return;
+  if (fase !== 'open') { showToast('Abra um endereço primeiro', 'warn'); return; }
+  adicionarItem(sku, qty);
   skuEl.value = '';
   qtyEl.value = '1';
   skuEl.focus();
@@ -394,11 +376,30 @@ function processar(raw) {
   processarItem(raw);
 }
 
+// Formato Audax: SKU-QUANTIDADE-INCREMENTAL  (ex: 21610954600101-123-136050)
+// Também aceita: SKU|QUANTIDADE ou só SKU
 function processarItem(raw) {
-  const partes = raw.split(SEP);
-  const sku    = partes[0].trim();
-  const qty    = parseFloat(partes[1]) || 1;
+  let sku, qty;
+  const partesDash = raw.split('-');
+  const partesPipe = raw.split('|');
+
+  if (partesDash.length >= 2 && /^\d{10,}$/.test(partesDash[0])) {
+    // Formato Audax: primeiro campo numérico longo = SKU
+    sku = partesDash[0].trim();
+    qty = parseFloat(partesDash[1]) || 1;
+  } else if (partesPipe.length >= 2) {
+    sku = partesPipe[0].trim();
+    qty = parseFloat(partesPipe[1]) || 1;
+  } else {
+    sku = raw.trim();
+    qty = 1;
+  }
+
   if (!sku) { showToast('Código inválido', 'err'); return; }
+  adicionarItem(sku, qty);
+}
+
+function adicionarItem(sku, qty) {
 
   const existe = !!itens[sku];
   if (existe) {
