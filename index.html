@@ -554,26 +554,19 @@ function ativarLeitorUsb() {
 }
 
 function adicionarItem(sku, qty) {
-  // Buscar dados do SB1 se existir
+  // Buscar dados do SB1 se existir (opcional, sem validação obrigatória)
   const produtoSB1 = sb1Data[sku];
-  let nome = produtoSB1 ? produtoSB1.B1_DESC || produtoSB1.descricao || '' : '';
-  let um = produtoSB1 ? (produtoSB1.B1_UM || produtoSB1.um || 'UN') : 'UN';
-
-  // Se SB1 carregado mas SKU não encontrado, avisar mas permitir adicionar
-  let aviso = '';
-  if (Object.keys(sb1Data).length > 0 && !produtoSB1) {
-    aviso = ' ⚠️ Não encontrado na SB1';
-  }
+  let nome = produtoSB1 ? (produtoSB1.b1_desc || produtoSB1.B1_DESC || '') : '';
+  let um = produtoSB1 ? (produtoSB1.b1_um || produtoSB1.B1_UM || 'UN') : 'UN';
 
   const existe = !!itens[sku];
   if (existe) {
     itens[sku].qty += qty;
-    showToast(`➕ ${sku} → ${itens[sku].qty} ${itens[sku].um}${aviso}`, 'warn');
+    showToast(`➕ ${sku} → ${itens[sku].qty} ${itens[sku].um}`, 'ok');
   } else {
     itens[sku] = { sku, qty, um, nome };
     const msgNome = nome ? ` - ${nome}` : '';
-    const tipo = aviso ? 'warn' : 'ok';
-    showToast(`✅ ${sku}${msgNome}${aviso}`, tipo);
+    showToast(`✅ ${sku}${msgNome}`, 'ok');
   }
 
   renderLista(sku);
