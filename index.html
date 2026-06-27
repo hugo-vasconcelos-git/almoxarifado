@@ -199,7 +199,10 @@
     <!-- Câmera de itens (visível só quando open) -->
     <div id="secaoItens" style="display:none;flex-direction:column;gap:14px">
       <button class="scan-btn" onclick="abrirCamera('item')">
-        <span class="icon">📷</span> Bipar item
+        <span class="icon">📷</span> Bipar item (câmera)
+      </button>
+      <button class="scan-btn ghost" onclick="ativarLeitorUsb()" style="font-size:14px;padding:12px;">
+        <span class="icon">📱</span> Bipar por leitor USB
       </button>
 
       <!-- Input manual de item -->
@@ -484,6 +487,14 @@ function confirmarQty() {
 function cancelarQty() {
   document.getElementById('modalQty').classList.remove('active');
   _qtyTempo = { sku: null, incremental: null };
+}
+
+// ── LEITOR USB ──
+function ativarLeitorUsb() {
+  const input = document.getElementById('manualSku');
+  input.value = '';
+  input.focus();
+  showToast('📱 Pronto! Aponte o leitor USB', 'ok');
 }
 
 function adicionarItem(sku, qty) {
