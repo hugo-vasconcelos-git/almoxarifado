@@ -1,0 +1,668 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Almox · Inventário</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap');
+  :root{
+    --bg:#0f1117;--surface:#181c27;--border:#252c3f;
+    --accent:#3b6ef6;--green:#00c9a7;--warn:#f5a623;--danger:#e84040;
+    --text:#e8eaf0;--muted:#6b7394;
+    --mono:'IBM Plex Mono',monospace;--sans:'IBM Plex Sans',sans-serif;
+  }
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+  html,body{height:100%;overflow:hidden;}
+  body{background:var(--bg);color:var(--text);font-family:var(--sans);display:flex;flex-direction:column;}
+
+  /* ── HEADER ── */
+  .header{background:var(--surface);border-bottom:1px solid var(--border);padding:12px 16px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;}
+  .logo{font-family:var(--mono);font-size:13px;letter-spacing:.1em;color:var(--accent);}
+  .logo span{color:var(--muted);}
+  .header-right{display:flex;align-items:center;gap:8px;}
+  .badge{background:var(--border);border-radius:12px;padding:4px 10px;font-family:var(--mono);font-size:11px;color:var(--muted);}
+  .badge.open{background:color-mix(in srgb,var(--accent) 20%,transparent);color:var(--accent);}
+  .badge.ready{background:color-mix(in srgb,var(--green) 20%,transparent);color:var(--green);}
+
+  /* ── TABS ── */
+  .tabs{display:flex;background:var(--surface);border-bottom:1px solid var(--border);flex-shrink:0;}
+  .tab{flex:1;padding:11px;text-align:center;font-size:12px;font-weight:600;color:var(--muted);border-bottom:2px solid transparent;cursor:pointer;transition:all .2s;}
+  .tab.active{color:var(--accent);border-color:var(--accent);}
+
+  /* ── PAGES ── */
+  .pages{flex:1;overflow:hidden;position:relative;}
+  .page{position:absolute;inset:0;overflow-y:auto;padding:16px;display:none;flex-direction:column;gap:14px;}
+  .page.active{display:flex;}
+
+  /* ── STATUS CARD ── */
+  .status-card{border-radius:12px;border:2px solid var(--border);background:var(--surface);padding:16px;transition:all .3s;}
+  .status-card.open {border-color:var(--accent);background:color-mix(in srgb,var(--accent) 8%,var(--surface));}
+  .status-card.ready{border-color:var(--green); background:color-mix(in srgb,var(--green)  8%,var(--surface));}
+  .sc-label{font-size:10px;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);font-weight:600;}
+  .sc-rua{font-family:var(--mono);font-size:36px;font-weight:600;line-height:1.1;margin:4px 0;}
+  .status-card.open  .sc-rua{color:var(--accent);}
+  .status-card.ready .sc-rua{color:var(--green);}
+  .sc-info{font-size:12px;color:var(--muted);font-family:var(--mono);}
+
+  /* ── SCAN BUTTON (câmera) ── */
+  .scan-btn{background:var(--accent);border:none;border-radius:12px;color:#fff;font-family:var(--sans);font-size:16px;font-weight:700;padding:16px;display:flex;align-items:center;justify-content:center;gap:10px;cursor:pointer;transition:opacity .15s,transform .1s;width:100%;}
+  .scan-btn:active{transform:scale(.97);opacity:.9;}
+  .scan-btn.green{background:var(--green);color:#111;}
+  .scan-btn.ghost{background:transparent;border:1px solid var(--border);color:var(--muted);}
+  .scan-btn.danger{background:var(--danger);}
+  .scan-btn:disabled{opacity:.35;cursor:not-allowed;}
+  .scan-btn .icon{font-size:20px;}
+
+  /* ── MANUAL INPUT ── */
+  .manual-wrap{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:14px;display:flex;flex-direction:column;gap:10px;}
+  .manual-wrap label{font-size:10px;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);}
+  .manual-row{display:flex;gap:8px;}
+  .manual-input{flex:1;background:var(--bg);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:var(--mono);font-size:16px;padding:10px 12px;outline:none;transition:border-color .2s;}
+  .manual-input:focus{border-color:var(--accent);}
+  .manual-input.qty{width:72px;flex:none;text-align:center;}
+  .add-btn{background:var(--accent);border:none;border-radius:8px;color:#fff;font-weight:700;font-size:14px;padding:10px 14px;cursor:pointer;}
+
+  /* ── ITEM LIST ── */
+  .section-label{font-size:10px;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);font-weight:600;display:flex;align-items:center;justify-content:space-between;}
+  .item-list{background:var(--surface);border:1px solid var(--border);border-radius:12px;overflow:hidden;}
+  .item-row{display:flex;align-items:center;gap:10px;padding:12px 14px;border-bottom:1px solid var(--border);}
+  .item-row:last-child{border-bottom:none;}
+  .item-row.flash{animation:rowflash .4s ease;}
+  @keyframes rowflash{0%{background:color-mix(in srgb,var(--green) 25%,transparent);}100%{background:transparent;}}
+  .item-sku{font-family:var(--mono);font-size:14px;font-weight:600;flex:1;}
+  .item-qty-wrap{text-align:right;}
+  .item-qty{font-family:var(--mono);font-size:18px;font-weight:600;color:var(--green);display:block;}
+  .item-um{font-size:10px;color:var(--muted);}
+  .item-del{background:transparent;border:none;color:var(--muted);font-size:18px;padding:4px 6px;cursor:pointer;}
+  .empty{padding:28px 16px;text-align:center;color:var(--muted);font-size:13px;display:flex;flex-direction:column;align-items:center;gap:8px;}
+  .empty .icon{font-size:32px;opacity:.2;}
+
+  /* ── LOG PAGE ── */
+  .log-entry{background:var(--surface);border:1px solid var(--border);border-radius:10px;overflow:hidden;}
+  .log-entry.ok {border-left:3px solid var(--green);}
+  .log-entry.err{border-left:3px solid var(--danger);}
+  .log-head-row{padding:10px 14px;display:flex;align-items:center;justify-content:space-between;}
+  .log-rua{font-family:var(--mono);font-size:15px;font-weight:600;}
+  .log-entry.ok  .log-rua{color:var(--green);}
+  .log-entry.err .log-rua{color:var(--danger);}
+  .log-ts{font-family:var(--mono);font-size:10px;color:var(--muted);}
+  .log-items-wrap{padding:0 14px 10px;display:flex;flex-direction:column;gap:3px;}
+  .log-item-row{display:flex;justify-content:space-between;font-family:var(--mono);font-size:12px;color:var(--muted);}
+  .log-item-row span{color:var(--green);}
+
+  /* ── EXPORT PAGE ── */
+  .export-preview{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:14px;font-family:var(--mono);font-size:12px;color:var(--text);white-space:pre-wrap;line-height:1.7;max-height:340px;overflow-y:auto;}
+  .export-actions{display:flex;flex-direction:column;gap:10px;}
+
+  /* ── CAMERA OVERLAY ── */
+  #cameraOverlay{position:fixed;inset:0;background:#000;z-index:100;display:none;flex-direction:column;}
+  #cameraOverlay.active{display:flex;}
+  #video{flex:1;object-fit:cover;width:100%;}
+  .cam-frame{position:absolute;top:50%;left:50%;transform:translate(-50%,-60%);width:220px;height:220px;border:2px solid var(--green);border-radius:16px;box-shadow:0 0 0 9999px rgba(0,0,0,.55);}
+  .cam-label{position:absolute;top:calc(50% - 60px + 120px);left:50%;transform:translateX(-50%);color:#fff;font-size:13px;font-family:var(--mono);white-space:nowrap;margin-top:12px;}
+  .cam-close{position:absolute;top:16px;right:16px;background:rgba(0,0,0,.6);border:1px solid rgba(255,255,255,.2);border-radius:8px;color:#fff;font-size:14px;padding:8px 14px;cursor:pointer;}
+  canvas#qrCanvas{display:none;}
+
+  /* ── RUA GRID ── */
+  .rua-grid{display:flex;flex-wrap:wrap;gap:6px;}
+  .rua-cel{width:38px;height:38px;border-radius:8px;border:1px solid var(--border);background:var(--bg);color:var(--muted);font-family:var(--mono);font-size:14px;font-weight:600;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:all .15s;-webkit-tap-highlight-color:transparent;}
+  .rua-cel:active{transform:scale(.92);}
+  .rua-cel.sel{background:var(--accent);color:#fff;border-color:var(--accent);}
+
+  /* ── TOAST ── */
+  #toast{position:fixed;bottom:80px;left:50%;transform:translateX(-50%) translateY(10px);background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:10px 18px;font-size:13px;font-weight:500;opacity:0;transition:all .25s;pointer-events:none;z-index:200;white-space:nowrap;}
+  #toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+  #toast.ok  {border-color:var(--green);color:var(--green);}
+  #toast.err {border-color:var(--danger);color:var(--danger);}
+  #toast.warn{border-color:var(--warn);color:var(--warn);}
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<div class="header">
+  <div class="logo">Almox<span> · </span>Inventário</div>
+  <div class="header-right">
+    <span class="badge" id="statBadge">Sem endereço</span>
+  </div>
+</div>
+
+<!-- TABS -->
+<div class="tabs">
+  <div class="tab active" onclick="goTab(0)">📦 Scan</div>
+  <div class="tab" onclick="goTab(1)">📋 Histórico</div>
+  <div class="tab" onclick="goTab(2)">💾 Exportar</div>
+</div>
+
+<!-- PAGES -->
+<div class="pages">
+
+  <!-- PAGE 0: SCAN -->
+  <div class="page active" id="page0">
+
+    <!-- Status -->
+    <div class="status-card" id="statusCard">
+      <div class="sc-label" id="scLabel">Nenhum endereço aberto</div>
+      <div class="sc-rua" id="scRua">— — —</div>
+      <div class="sc-info" id="scInfo">Selecione rua e prateleira para começar</div>
+    </div>
+
+    <!-- Seletor de endereço (visível só quando idle) -->
+    <div id="seletorEndereco">
+      <div class="manual-wrap">
+        <label>📍 Selecionar endereço</label>
+        <div class="manual-row" style="align-items:flex-end;gap:10px">
+          <div style="flex:1;display:flex;flex-direction:column;gap:6px">
+            <span style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em">Rua</span>
+            <div class="rua-grid" id="ruaGrid"></div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:6px">
+            <span style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em">Prateleira</span>
+            <select class="manual-input" id="selPrateleira" style="width:80px;font-size:18px;font-weight:600;text-align:center;">
+              <option value="">—</option>
+            </select>
+          </div>
+        </div>
+        <button class="scan-btn" id="btnAbrir" disabled onclick="abrirSelecionado()" style="font-size:15px;padding:14px;">
+          <span class="icon">📂</span> Abrir endereço
+        </button>
+      </div>
+    </div>
+
+    <!-- Câmera de itens (visível só quando open) -->
+    <div id="secaoItens" style="display:none;flex-direction:column;gap:14px">
+      <button class="scan-btn" onclick="abrirCamera('item')">
+        <span class="icon">📷</span> Bipar item
+      </button>
+
+      <!-- Input manual de item -->
+      <div class="manual-wrap">
+        <label>Ou digite o item manualmente</label>
+        <div class="manual-row">
+          <input class="manual-input" id="manualSku" placeholder="SKU" autocomplete="off" autocorrect="off" autocapitalize="characters">
+          <input class="manual-input qty" id="manualQty" placeholder="Qty" type="number" min="1" value="1">
+          <button class="add-btn" onclick="processarManual()">+</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Lista de itens -->
+    <div class="section-label">
+      <span>Itens no endereço</span>
+      <span id="listTotal" style="font-weight:400;color:var(--muted)">0 itens</span>
+    </div>
+    <div class="item-list" id="itemList">
+      <div class="empty"><span class="icon">📋</span><span>Nenhum item ainda</span></div>
+    </div>
+
+    <!-- Botões de ação -->
+    <button class="scan-btn green" id="btnFechar" disabled onclick="fecharEndereco()">
+      <span class="icon">🔒</span> Fechar e salvar endereço
+    </button>
+    <button class="scan-btn ghost" id="btnCancelar" disabled onclick="cancelar()" style="font-size:13px;padding:12px;">
+      ✕ Cancelar
+    </button>
+
+  </div>
+
+  <!-- PAGE 1: HISTÓRICO -->
+  <div class="page" id="page1">
+    <div class="section-label">
+      <span>Endereços registrados</span>
+      <span id="logTotal" style="font-weight:400;color:var(--muted)">0</span>
+    </div>
+    <div id="logBody">
+      <div class="empty"><span class="icon">📦</span><span>Nenhum registro ainda</span></div>
+    </div>
+  </div>
+
+  <!-- PAGE 2: EXPORTAR -->
+  <div class="page" id="page2">
+    <div class="section-label"><span>Prévia do arquivo</span></div>
+    <div class="export-preview" id="exportPreview">Nenhum dado para exportar ainda.</div>
+    <div class="export-actions">
+      <button class="scan-btn green" onclick="exportarTexto()">
+        <span class="icon">📋</span> Copiar para área de transferência
+      </button>
+      <button class="scan-btn" onclick="compartilhar()">
+        <span class="icon">📤</span> Compartilhar / Salvar em Notas
+      </button>
+      <button class="scan-btn ghost" onclick="limparTudo()" style="font-size:13px;padding:12px;color:var(--danger);border-color:var(--danger);">
+        🗑 Limpar tudo
+      </button>
+    </div>
+  </div>
+
+</div>
+
+<!-- CÂMERA OVERLAY -->
+<div id="cameraOverlay">
+  <video id="video" playsinline autoplay muted></video>
+  <div class="cam-frame"></div>
+  <div class="cam-label" id="camLabel">Aponte para o QR Code</div>
+  <button class="cam-close" onclick="fecharCamera()">✕ Fechar</button>
+  <canvas id="qrCanvas"></canvas>
+</div>
+
+<div id="toast"></div>
+
+<!-- jsQR para leitura de QR via câmera -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jsqr/1.4.0/jsQR.min.js"></script>
+
+<script>
+/* ══════════════════════════════════
+   STATE
+══════════════════════════════════ */
+const RUAS = ['A','B','C','D','E','F','G','H','I','J','K','L','M','N','O'];
+const SEP  = '|';
+
+let fase        = 'idle';
+let ruaAtual    = '';
+let pratAtual   = '';
+let itens       = {};
+let log         = [];
+let ruaSel      = '';
+
+let videoStream = null;
+let scanAtivo   = false;
+
+/* ══════════════════════════════════
+   TABS
+══════════════════════════════════ */
+function goTab(i) {
+  document.querySelectorAll('.tab').forEach((t,j)=>t.classList.toggle('active',i===j));
+  document.querySelectorAll('.page').forEach((p,j)=>p.classList.toggle('active',i===j));
+  if (i===2) gerarPrevia();
+}
+
+/* ══════════════════════════════════
+   INIT SELETOR
+══════════════════════════════════ */
+window.addEventListener('DOMContentLoaded', () => {
+  // Grid de ruas
+  const grid = document.getElementById('ruaGrid');
+  RUAS.forEach(r => {
+    const cel = document.createElement('div');
+    cel.className = 'rua-cel';
+    cel.textContent = r;
+    cel.onclick = () => selecionarRua(r, cel);
+    grid.appendChild(cel);
+  });
+
+  // Select de prateleiras 1–54
+  const sel = document.getElementById('selPrateleira');
+  for (let i = 1; i <= 54; i++) {
+    const opt = document.createElement('option');
+    opt.value = i;
+    opt.textContent = i;
+    sel.appendChild(opt);
+  }
+  sel.addEventListener('change', verificarBtnAbrir);
+
+  document.getElementById('manualSku').addEventListener('keydown', e => {
+    if (e.key==='Enter'){e.preventDefault();processarManual();}
+  });
+  document.getElementById('manualQty').addEventListener('keydown', e => {
+    if (e.key==='Enter'){e.preventDefault();processarManual();}
+  });
+});
+
+function selecionarRua(r, cel) {
+  document.querySelectorAll('.rua-cel').forEach(c=>c.classList.remove('sel'));
+  cel.classList.add('sel');
+  ruaSel = r;
+  verificarBtnAbrir();
+}
+
+function verificarBtnAbrir() {
+  const prat = document.getElementById('selPrateleira').value;
+  document.getElementById('btnAbrir').disabled = !(ruaSel && prat);
+}
+
+function abrirSelecionado() {
+  const prat = document.getElementById('selPrateleira').value;
+  if (!ruaSel || !prat) return;
+  abrirEndereco(ruaSel, prat);
+}
+
+/* ══════════════════════════════════
+   CÂMERA (só para itens)
+══════════════════════════════════ */
+async function abrirCamera() {
+  const overlay = document.getElementById('cameraOverlay');
+  const video   = document.getElementById('video');
+  document.getElementById('camLabel').textContent = 'Bipe o QR do item (SKU|Qty)';
+  try {
+    videoStream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode:'environment', width:{ideal:1280}, height:{ideal:720} }
+    });
+    video.srcObject = videoStream;
+    overlay.classList.add('active');
+    scanAtivo = true;
+    requestAnimationFrame(tickScan);
+  } catch(e) {
+    showToast('❌ Câmera não disponível — use o campo manual', 'err');
+  }
+}
+
+function fecharCamera() {
+  scanAtivo = false;
+  if (videoStream) { videoStream.getTracks().forEach(t=>t.stop()); videoStream=null; }
+  document.getElementById('cameraOverlay').classList.remove('active');
+}
+
+function tickScan() {
+  if (!scanAtivo) return;
+  const video  = document.getElementById('video');
+  const canvas = document.getElementById('qrCanvas');
+  if (video.readyState !== video.HAVE_ENOUGH_DATA) { requestAnimationFrame(tickScan); return; }
+
+  canvas.width  = video.videoWidth;
+  canvas.height = video.videoHeight;
+  const ctx = canvas.getContext('2d');
+  ctx.drawImage(video, 0, 0);
+
+  const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+  const code = jsQR(imageData.data, imageData.width, imageData.height, { inversionAttempts:'dontInvert' });
+
+  if (code && code.data) {
+    fecharCamera();
+    processar(code.data.trim().toUpperCase());
+  } else {
+    requestAnimationFrame(tickScan);
+  }
+}
+
+/* ══════════════════════════════════
+   PROCESSAR SCAN / MANUAL
+══════════════════════════════════ */
+function processarManual() {
+  const skuEl = document.getElementById('manualSku');
+  const qtyEl = document.getElementById('manualQty');
+  const raw = skuEl.value.trim().toUpperCase();
+  const qty = parseFloat(qtyEl.value) || 1;
+  if (!raw) return;
+  processar(raw + SEP + qty);
+  skuEl.value = '';
+  qtyEl.value = '1';
+  skuEl.focus();
+}
+
+function processar(raw) {
+  if (fase !== 'open') { showToast('Abra um endereço primeiro', 'warn'); return; }
+  processarItem(raw);
+}
+
+function processarItem(raw) {
+  const partes = raw.split(SEP);
+  const sku    = partes[0].trim();
+  const qty    = parseFloat(partes[1]) || 1;
+  if (!sku) { showToast('Código inválido', 'err'); return; }
+
+  const existe = !!itens[sku];
+  if (existe) {
+    itens[sku].qty += qty;
+    showToast(`➕ ${sku} → ${itens[sku].qty} un`, 'ok');
+  } else {
+    itens[sku] = { sku, qty, um:'UN' };
+    showToast(`✅ ${sku} · ${qty} un`, 'ok');
+  }
+
+  renderLista(sku);
+  atualizarStatus();
+}
+
+/* ══════════════════════════════════
+   ABRIR / FECHAR
+══════════════════════════════════ */
+function abrirEndereco(rua, prat) {
+  fase = 'open'; ruaAtual = rua; pratAtual = prat; itens = {};
+  document.getElementById('seletorEndereco').style.display = 'none';
+  document.getElementById('secaoItens').style.display      = 'flex';
+  atualizarStatus();
+  renderLista();
+  document.getElementById('btnFechar').disabled   = false;
+  document.getElementById('btnCancelar').disabled = false;
+  showToast(`📂 RUA ${rua} · Prat. ${prat} aberta`, 'ok');
+}
+
+function fecharEndereco() {
+  if (Object.keys(itens).length === 0) {
+    showToast('Adicione itens antes de fechar', 'warn');
+    return;
+  }
+  fase = 'ready';
+  atualizarStatus();
+  log.push({
+    rua:  ruaAtual,
+    prat: pratAtual,
+    ts:   agora(),
+    itens: Object.values(itens).map(i=>({...i}))
+  });
+  atualizarLogBadge();
+  renderLog();
+  showToast(`✅ RUA ${ruaAtual} · Prat. ${pratAtual} salva!`, 'ok');
+  setTimeout(() => { cancelar(true); goTab(1); }, 900);
+}
+
+/* ══════════════════════════════════
+   RENDER
+══════════════════════════════════ */
+function cancelar(silencioso=false) {
+  fase = 'idle'; ruaAtual = ''; pratAtual = ''; itens = {}; ruaSel = '';
+  document.querySelectorAll('.rua-cel').forEach(c=>c.classList.remove('sel'));
+  document.getElementById('selPrateleira').value = '';
+  document.getElementById('btnAbrir').disabled = true;
+  document.getElementById('seletorEndereco').style.display = 'block';
+  document.getElementById('secaoItens').style.display      = 'none';
+  atualizarStatus();
+  renderLista();
+  document.getElementById('btnFechar').disabled   = true;
+  document.getElementById('btnCancelar').disabled = true;
+  if (!silencioso) showToast('Leitura cancelada', 'warn');
+}
+
+function atualizarStatus() {
+  const card  = document.getElementById('statusCard');
+  const label = document.getElementById('scLabel');
+  const rua   = document.getElementById('scRua');
+  const info  = document.getElementById('scInfo');
+  const badge = document.getElementById('statBadge');
+  const n     = Object.keys(itens).length;
+  const total = Object.values(itens).reduce((s,i)=>s+i.qty,0);
+
+  if (fase==='idle') {
+    card.className='status-card';
+    label.textContent='Nenhum endereço aberto';
+    rua.textContent='— — —';
+    info.textContent='Selecione rua e prateleira para começar';
+    badge.className='badge'; badge.textContent='Sem endereço';
+  } else if (fase==='open') {
+    card.className='status-card open';
+    label.textContent='▶ ABERTO';
+    rua.textContent=`${ruaAtual} · ${pratAtual}`;
+    info.textContent=`${n} itens · ${total} un`;
+    badge.className='badge open'; badge.textContent=`${ruaAtual}-${pratAtual}`;
+  } else {
+    card.className='status-card ready';
+    label.textContent='🔒 SALVO';
+    rua.textContent=`${ruaAtual} · ${pratAtual}`;
+    info.textContent=`${n} itens · ${total} un · salvo!`;
+    badge.className='badge ready'; badge.textContent='Salvo ✓';
+  }
+}
+
+function renderLista(highlightSku='') {
+  const list = document.getElementById('itemList');
+  const arr  = Object.values(itens);
+  document.getElementById('listTotal').textContent =
+    arr.length ? `${arr.length} itens · ${arr.reduce((s,i)=>s+i.qty,0)} un` : '0 itens';
+
+  if (!arr.length) {
+    list.innerHTML='<div class="empty"><span class="icon">📋</span><span>Nenhum item ainda</span></div>';
+    return;
+  }
+  list.innerHTML='';
+  arr.forEach(item=>{
+    const row=document.createElement('div');
+    row.className='item-row'+(item.sku===highlightSku?' flash':'');
+    row.id='row-'+item.sku;
+    row.innerHTML=`
+      <div class="item-sku">${item.sku}</div>
+      <div class="item-qty-wrap">
+        <span class="item-qty">${item.qty}</span>
+        <span class="item-um">${item.um}</span>
+      </div>
+      <button class="item-del" onclick="remover('${item.sku}')">✕</button>
+    `;
+    list.appendChild(row);
+  });
+}
+
+function remover(sku) {
+  delete itens[sku];
+  renderLista();
+  atualizarStatus();
+}
+
+function renderLog() {
+  const body = document.getElementById('logBody');
+  document.getElementById('logTotal').textContent = log.length;
+  if (!log.length) {
+    body.innerHTML='<div class="empty"><span class="icon">📦</span><span>Nenhum registro ainda</span></div>';
+    return;
+  }
+  body.innerHTML='';
+  [...log].reverse().forEach(entry=>{
+    const el=document.createElement('div');
+    el.className='log-entry ok';
+    const itensHtml=entry.itens.map(i=>`
+      <div class="log-item-row">${i.sku}<span>${i.qty} ${i.um}</span></div>
+    `).join('');
+    el.innerHTML=`
+      <div class="log-head-row">
+        <span class="log-rua">RUA ${entry.rua} · Prat. ${entry.prat}</span>
+        <span class="log-ts">${entry.ts}</span>
+      </div>
+      <div class="log-items-wrap">${itensHtml}</div>
+    `;
+    body.appendChild(el);
+  });
+}
+
+function atualizarLogBadge() {
+  document.getElementById('logTotal').textContent = log.length;
+}
+
+/* ══════════════════════════════════
+   EXPORTAR
+══════════════════════════════════ */
+function gerarTexto() {
+  if (!log.length) return 'Nenhum dado registrado.';
+  const linhas = [];
+  linhas.push('INVENTÁRIO DE ALMOXARIFADO');
+  linhas.push('Data: ' + new Date().toLocaleDateString('pt-BR', {day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'}));
+  linhas.push('═'.repeat(32));
+  log.forEach(entry => {
+    linhas.push('');
+    linhas.push(`▶ RUA ${entry.rua} · PRAT. ${entry.prat}  [${entry.ts}]`);
+    linhas.push('─'.repeat(28));
+    entry.itens.forEach(i => {
+      const sku = i.sku.padEnd(14);
+      const qty = String(i.qty).padStart(6);
+      linhas.push(`  ${sku} ${qty} ${i.um}`);
+    });
+    const total = entry.itens.reduce((s,i)=>s+i.qty,0);
+    linhas.push(`  ${'TOTAL'.padEnd(14)} ${String(total).padStart(6)} un`);
+  });
+  linhas.push('');
+  linhas.push('═'.repeat(32));
+  linhas.push(`Total de ruas: ${log.length}`);
+  linhas.push(`Total de SKUs: ${log.reduce((s,e)=>s+e.itens.length,0)}`);
+  return linhas.join('\n');
+}
+
+function gerarPrevia() {
+  document.getElementById('exportPreview').textContent = gerarTexto();
+}
+
+async function exportarTexto() {
+  const txt = gerarTexto();
+  try {
+    await navigator.clipboard.writeText(txt);
+    showToast('✅ Copiado! Cole no Notas ou WhatsApp', 'ok');
+  } catch(e) {
+    // Fallback: seleciona texto
+    const el = document.getElementById('exportPreview');
+    const range = document.createRange();
+    range.selectNodeContents(el);
+    window.getSelection().removeAllRanges();
+    window.getSelection().addRange(range);
+    showToast('Selecione e copie o texto acima', 'warn');
+  }
+}
+
+async function compartilhar() {
+  const txt  = gerarTexto();
+  const nome = `inventario_${new Date().toISOString().slice(0,10)}.txt`;
+
+  // Web Share API — abre menu nativo do celular (Notas, WhatsApp, Drive...)
+  if (navigator.share) {
+    try {
+      // Tenta compartilhar como arquivo
+      const arquivo = new File([txt], nome, { type:'text/plain' });
+      if (navigator.canShare && navigator.canShare({ files:[arquivo] })) {
+        await navigator.share({ files:[arquivo], title:'Inventário Almoxarifado' });
+      } else {
+        await navigator.share({ title:'Inventário Almoxarifado', text: txt });
+      }
+    } catch(e) {
+      if (e.name !== 'AbortError') showToast('Erro ao compartilhar', 'err');
+    }
+  } else {
+    // Desktop: download do arquivo
+    const a = document.createElement('a');
+    a.href = 'data:text/plain;charset=utf-8,' + encodeURIComponent(txt);
+    a.download = nome;
+    a.click();
+    showToast('✅ Arquivo baixado', 'ok');
+  }
+}
+
+function limparTudo() {
+  if (!confirm('Apagar todo o histórico?')) return;
+  log = [];
+  renderLog();
+  gerarPrevia();
+  showToast('🗑 Histórico limpo', 'warn');
+}
+
+/* ══════════════════════════════════
+   HELPERS
+══════════════════════════════════ */
+function agora() {
+  const d=new Date();
+  return `${pad(d.getHours())}:${pad(d.getMinutes())} · ${pad(d.getDate())}/${pad(d.getMonth()+1)}`;
+}
+function pad(n){return String(n).padStart(2,'0');}
+
+let _t;
+function showToast(msg,type='ok'){
+  const t=document.getElementById('toast');
+  t.textContent=msg; t.className=`show ${type}`;
+  clearTimeout(_t); _t=setTimeout(()=>t.className='',2800);
+}
+
+// Enter no campo manual
+document.addEventListener('DOMContentLoaded',()=>{
+  document.getElementById('manualSku').addEventListener('keydown',e=>{
+    if(e.key==='Enter'){e.preventDefault();processarManual();}
+  });
+  document.getElementById('manualQty').addEventListener('keydown',e=>{
+    if(e.key==='Enter'){e.preventDefault();processarManual();}
+  });
+});
+</script>
+</body>
+</html>
