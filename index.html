@@ -116,6 +116,19 @@
   #toast.ok  {border-color:var(--green);color:var(--green);}
   #toast.err {border-color:var(--danger);color:var(--danger);}
   #toast.warn{border-color:var(--warn);color:var(--warn);}
+
+  /* ── MODAL LOGIN ── */
+  #modalLogin{position:fixed;inset:0;background:rgba(0,0,0,.8);z-index:300;display:none;flex-direction:column;align-items:center;justify-content:center;padding:20px;}
+  #modalLogin.active{display:flex;}
+  .modal-box{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:28px;width:100%;max-width:340px;display:flex;flex-direction:column;gap:16px;}
+  .modal-title{font-size:18px;font-weight:700;color:var(--text);}
+  .modal-desc{font-size:13px;color:var(--muted);line-height:1.5;}
+  .modal-input{background:var(--bg);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:var(--mono);font-size:16px;padding:12px 14px;outline:none;transition:border-color .2s;}
+  .modal-input:focus{border-color:var(--accent);}
+  .modal-hint{font-size:11px;color:var(--muted);font-style:italic;margin-top:-8px;}
+  .modal-btn{background:var(--accent);border:none;border-radius:8px;color:#fff;font-weight:700;font-size:15px;padding:12px;cursor:pointer;transition:opacity .15s;}
+  .modal-btn:active{opacity:.8;}
+  .modal-btn:disabled{opacity:.35;cursor:not-allowed;}
 </style>
 </head>
 <body>
@@ -246,6 +259,17 @@
 </div>
 
 <div id="toast"></div>
+
+<!-- MODAL LOGIN -->
+<div id="modalLogin">
+  <div class="modal-box">
+    <div class="modal-title">Bem-vindo! 👋</div>
+    <div class="modal-desc">Digite seu usuário Protheus para registrar o inventário:</div>
+    <input type="text" class="modal-input" id="modalUserInput" placeholder="nome.sobrenome" autocomplete="off" autocorrect="off" autocapitalize="none">
+    <div class="modal-hint">Formato: nome.sobrenome (ex: joao.silva)</div>
+    <button class="modal-btn" id="modalBtnOk" onclick="salvarUsuario()">Continuar</button>
+  </div>
+</div>
 
 <!-- ZXing para leitura de QR via câmera (melhor para etiquetas densas) -->
 <script src="https://unpkg.com/@zxing/library@0.19.1/umd/index.min.js"></script>
@@ -576,6 +600,8 @@ function gerarTexto() {
   const linhas = [];
   linhas.push('INVENTÁRIO DE ALMOXARIFADO');
   linhas.push('Data: ' + new Date().toLocaleDateString('pt-BR', {day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'}));
+  const user = getUserName();
+  if (user) linhas.push('Operador: ' + user);
   linhas.push('═'.repeat(32));
   log.forEach(entry => {
     linhas.push('');
@@ -667,6 +693,42 @@ function showToast(msg,type='ok'){
   clearTimeout(_t); _t=setTimeout(()=>t.className='',2800);
 }
 
+// ── GERENCIAR USUÁRIO ──
+let usuarioAtual = null;
+
+function getUserName() {
+  if (!usuarioAtual) usuarioAtual = localStorage.getItem('almoxUsuario');
+  return usuarioAtual;
+}
+
+function salvarUsuario() {
+  const input = document.getElementById('modalUserInput');
+  const user = input.value.trim().toLowerCase();
+
+  // Validar formato nome.sobrenome
+  if (!user.match(/^[a-záéíóúâêô]+\.[a-záéíóúâêô]+$/i)) {
+    showToast('Formato inválido! Use: nome.sobrenome', 'err');
+    return;
+  }
+
+  localStorage.setItem('almoxUsuario', user);
+  usuarioAtual = user;
+  document.getElementById('modalLogin').classList.remove('active');
+  showToast(`✓ Usuário ${user} salvo!`, 'ok');
+}
+
+function mostrarModalLogin() {
+  if (getUserName()) {
+    // Já tem usuário salvo, não mostrar modal
+    return;
+  }
+  document.getElementById('modalLogin').classList.add('active');
+  document.getElementById('modalUserInput').focus();
+  document.getElementById('modalUserInput').addEventListener('keydown', e => {
+    if (e.key === 'Enter') salvarUsuario();
+  });
+}
+
 // Enter no campo manual
 document.addEventListener('DOMContentLoaded',()=>{
   document.getElementById('manualSku').addEventListener('keydown',e=>{
@@ -675,6 +737,9 @@ document.addEventListener('DOMContentLoaded',()=>{
   document.getElementById('manualQty').addEventListener('keydown',e=>{
     if(e.key==='Enter'){e.preventDefault();processarManual();}
   });
+
+  // Mostrar modal de login se necessário
+  setTimeout(() => mostrarModalLogin(), 100);
 });
 </script>
 </body>
