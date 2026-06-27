@@ -50,6 +50,7 @@
   .scan-btn:active{transform:scale(.97);opacity:.9;}
   .scan-btn.green{background:var(--green);color:#111;}
   .scan-btn.ghost{background:transparent;border:1px solid var(--border);color:var(--muted);}
+  .scan-btn.ghost.green{background:color-mix(in srgb,var(--green) 20%,transparent);border-color:var(--green);color:var(--green);}
   .scan-btn.danger{background:var(--danger);}
   .scan-btn:disabled{opacity:.35;cursor:not-allowed;}
   .scan-btn .icon{font-size:20px;}
@@ -318,6 +319,7 @@ let itens       = {};
 let lidos       = new Set(); // incrementais já lidos neste endereço
 let log         = [];
 let ruaSel      = '';
+let modoLeitor  = false; // modo contínuo de leitor USB
 
 
 /* ══════════════════════════════════
@@ -481,19 +483,49 @@ function confirmarQty() {
   const qty = parseFloat(document.getElementById('modalQtyInput').value) || 1;
   document.getElementById('modalQty').classList.remove('active');
   adicionarItem(sku, qty);
+
+  // Se em modo leitor, refoca no campo SKU para próximo scan
+  if (modoLeitor) {
+    setTimeout(() => {
+      document.getElementById('manualSku').focus();
+      document.getElementById('manualSku').value = '';
+    }, 100);
+  }
 }
 
 function cancelarQty() {
   document.getElementById('modalQty').classList.remove('active');
   _qtyTempo = { sku: null, incremental: null };
+
+  // Se em modo leitor, refoca no campo SKU
+  if (modoLeitor) {
+    setTimeout(() => {
+      document.getElementById('manualSku').focus();
+      document.getElementById('manualSku').value = '';
+    }, 100);
+  }
 }
 
 // ── LEITOR USB ──
 function ativarLeitorUsb() {
-  const input = document.getElementById('manualSku');
-  input.value = '';
-  input.focus();
-  showToast('📱 Pronto! Aponte o leitor USB', 'ok');
+  const btn = document.querySelector('button[onclick="ativarLeitorUsb()"]');
+
+  if (modoLeitor) {
+    // Sair do modo
+    modoLeitor = false;
+    btn.classList.remove('green');
+    btn.textContent = '📱 Bipar por leitor USB';
+    showToast('✕ Saiu do modo leitor', 'warn');
+  } else {
+    // Entrar no modo
+    modoLeitor = true;
+    btn.classList.add('green');
+    btn.textContent = '✓ Modo leitor ATIVO';
+    const input = document.getElementById('manualSku');
+    input.value = '';
+    input.focus();
+    showToast('📱 Modo leitor ativo! Aponte quantas vezes quiser', 'ok');
+  }
 }
 
 function adicionarItem(sku, qty) {
