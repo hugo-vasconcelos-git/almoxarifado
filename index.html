@@ -905,25 +905,34 @@ function carregarSB1(event) {
   const reader = new FileReader();
   reader.onload = (e) => {
     try {
-      const json = JSON.parse(e.target.result);
+      // LIMPAR dados antigos primeiro
       sb1Data = {};
+      localStorage.removeItem('almoxSB1');
+
+      const json = JSON.parse(e.target.result);
 
       // Suporta múltiplos formatos
       let items = [];
       if (json.items && Array.isArray(json.items)) {
         items = json.items; // Formato: {items: [{b1_cod, b1_desc, ...}]}
+        console.log(`Formato: {items: [...]}, total: ${items.length}`);
       } else if (Array.isArray(json)) {
         items = json; // Formato: [{b1_cod, b1_desc, ...}]
+        console.log(`Formato: [...], total: ${items.length}`);
       } else if (typeof json === 'object') {
         items = [json]; // Formato: {b1_cod, b1_desc, ...}
+        console.log(`Formato: {...}, total: 1`);
       }
 
+      console.log(`Primeiros 3 itens:`, items.slice(0, 3));
+
       // Indexar por SKU (suportar maiúsculas e minúsculas)
+      let contador = 0;
       items.forEach(item => {
         // Procurar a chave de SKU em múltiplos formatos
-        const sku = item.b1_cod || item.B1_COD || item['b1_cod'] || item['B1_COD'];
-        const desc = item.b1_desc || item.B1_DESC || item['b1_desc'] || item['B1_DESC'] || '';
-        const um = item.b1_um || item.B1_UM || item['b1_um'] || item['B1_UM'] || 'UN';
+        const sku = item.b1_cod || item.B1_COD;
+        const desc = item.b1_desc || item.B1_DESC || '';
+        const um = item.b1_um || item.B1_UM || 'UN';
 
         if (sku) {
           sb1Data[sku] = {
@@ -931,16 +940,18 @@ function carregarSB1(event) {
             b1_desc: desc,
             b1_um: um
           };
+          contador++;
         }
       });
 
-      console.log(`SB1 carregado: ${Object.keys(sb1Data).length} produtos`);
+      console.log(`✓ SB1 carregado: ${contador} produtos indexados`);
 
       // Armazenar em localStorage
       try {
         localStorage.setItem('almoxSB1', JSON.stringify(sb1Data));
+        console.log(`✓ Salvo em localStorage`);
       } catch (e) {
-        console.warn('localStorage cheio, tentando comprimir...', e);
+        console.warn('⚠️ localStorage cheio ou indisponível', e);
       }
 
       // Atualizar UI
@@ -951,7 +962,7 @@ function carregarSB1(event) {
       atualizarBadgeSB1();
       showToast(`✓ ${Object.keys(sb1Data).length} produtos carregados!`, 'ok');
     } catch (err) {
-      console.error('Erro ao carregar SB1:', err);
+      console.error('❌ Erro ao carregar SB1:', err);
       showToast('❌ Erro ao ler JSON: ' + err.message, 'err');
     }
   };
