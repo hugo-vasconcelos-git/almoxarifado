@@ -188,8 +188,12 @@
 
     <!-- Seletor de endereço (visível só quando idle) -->
     <div id="seletorEndereco">
+      <button class="scan-btn" onclick="abrirCameraEndereco()" style="font-size:15px;padding:14px;margin-bottom:10px;">
+        <span class="icon">📷</span> Bipar endereço (QR Code)
+      </button>
+
       <div class="manual-wrap">
-        <label>📍 Selecionar endereço</label>
+        <label>Ou selecionar manualmente</label>
         <div class="manual-row" style="align-items:flex-end;gap:10px">
           <div style="flex:1;display:flex;flex-direction:column;gap:6px">
             <span style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em">Rua</span>
@@ -584,6 +588,51 @@ function adicionarItem(sku, qty) {
 /* ══════════════════════════════════
    ABRIR / FECHAR
 ══════════════════════════════════ */
+// ── BIPAR ENDEREÇO (RUA + PRATELEIRA) ──
+function abrirCameraEndereco() {
+  document.getElementById('camLabel').textContent = 'Aponte para o QR Code da prateleira';
+  document.getElementById('cameraOverlay').classList.add('active');
+  try {
+    const hints = new Map();
+    hints.set(ZXing.DecodeHintType.TRY_HARDER, true);
+    zxingReader = new ZXing.BrowserMultiFormatReader(hints);
+    zxingReader.decodeFromVideoDevice(
+      null,
+      'video',
+      (result, err) => {
+        if (result) {
+          fecharCamera();
+          processarEndereco(result.getText().trim().toUpperCase());
+        }
+      }
+    );
+  } catch(e) {
+    showToast('❌ Câmera não disponível', 'err');
+    fecharCamera();
+  }
+}
+
+function processarEndereco(codigo) {
+  // Formato esperado: A01, B05, L54, etc
+  const match = codigo.match(/^([A-O])(\d{1,2})$/);
+
+  if (!match) {
+    showToast(`❌ QR Code inválido: ${codigo}`, 'err');
+    return;
+  }
+
+  const rua = match[1];
+  const prat = parseInt(match[2]);
+
+  if (prat < 1 || prat > 54) {
+    showToast(`❌ Prateleira fora do intervalo (1-54): ${prat}`, 'err');
+    return;
+  }
+
+  abrirEndereco(rua, prat);
+  showToast(`✓ Endereço ${rua}${String(prat).padStart(2,'0')} aberto!`, 'ok');
+}
+
 function abrirEndereco(rua, prat) {
   fase = 'open'; ruaAtual = rua; pratAtual = prat; itens = {}; lidos = new Set();
   document.getElementById('seletorEndereco').style.display = 'none';
