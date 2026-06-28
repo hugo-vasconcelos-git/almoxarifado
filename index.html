@@ -343,7 +343,7 @@
 <script src="https://unpkg.com/@zxing/library@0.19.1/umd/index.min.js"></script>
 
 <!-- SheetJS para exportar Excel -->
-<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script src="https://unpkg.com/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 
 <script>
 /* ══════════════════════════════════
@@ -924,19 +924,25 @@ function exportarExcel() {
     return;
   }
 
-  try {
-    // Preparar dados em formato CSV
-    let csv = 'CÓDIGO,DESCRIÇÃO,QTDE,UM,ENDEREÇO\n';
+  if (typeof XLSX === 'undefined') {
+    showToast('❌ Carregando biblioteca... tente novamente em 2 segundos', 'warn');
+    setTimeout(() => exportarExcel(), 2000);
+    return;
+  }
 
+  try {
+    // Preparar dados
+    const allItems = [];
     log.forEach(entry => {
       const endereco = `${entry.rua}${String(entry.prat).padStart(2,'0')}`;
       entry.itens.forEach(item => {
-        const sku = `"${item.sku}"`;
-        const desc = `"${(item.nome || '').replace(/"/g, '""')}"`;
-        const qty = item.qty;
-        const um = item.um;
-        const end = endereco;
-        csv += `${sku},${desc},${qty},${um},${end}\n`;
+        allItems.push({
+          'CÓDIGO': item.sku,
+          'DESCRIÇÃO': item.nome || '',
+          'QTDE': item.qty,
+          'UM': item.um,
+          'ENDEREÇO': endereco
+        });
       });
     });
 
@@ -945,24 +951,29 @@ function exportarExcel() {
     const agora = new Date();
     const data = `${String(agora.getDate()).padStart(2,'0')}-${String(agora.getMonth()+1).padStart(2,'0')}-${agora.getFullYear()}`;
     const hora = `${String(agora.getHours()).padStart(2,'0')}h${String(agora.getMinutes()).padStart(2,'0')}`;
-    const nomeArquivo = `Almox_${user}_${data}_${hora}.csv`;
+    const nomeArquivo = `Almox_${user}_${data}_${hora}.xlsx`;
 
-    // Criar blob e fazer download
-    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement('a');
-    const url = URL.createObjectURL(blob);
-    link.setAttribute('href', url);
-    link.setAttribute('download', nomeArquivo);
-    link.style.visibility = 'hidden';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    // Criar workbook
+    const ws = XLSX.utils.json_to_sheet(allItems);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Inventário");
 
+    // Ajustar largura das colunas
+    ws['!cols'] = [
+      { wch: 18 }, // CÓDIGO
+      { wch: 30 }, // DESCRIÇÃO
+      { wch: 10 }, // QTDE
+      { wch: 6 },  // UM
+      { wch: 10 }  // ENDEREÇO
+    ];
+
+    // Download
+    XLSX.writeFile(wb, nomeArquivo);
     showToast(`✓ Arquivo ${nomeArquivo} baixado!`, 'ok');
-    console.log(`CSV exportado: ${nomeArquivo}`);
+    console.log(`Excel exportado: ${nomeArquivo}`);
   } catch (err) {
     console.error('Erro ao exportar:', err);
-    showToast('❌ Erro ao gerar arquivo: ' + err.message, 'err');
+    showToast('❌ Erro: ' + err.message, 'err');
   }
 }
 
