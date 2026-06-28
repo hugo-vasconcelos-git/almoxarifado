@@ -924,57 +924,45 @@ function exportarExcel() {
     return;
   }
 
-  // Verificar se XLSX está disponível
-  if (typeof XLSX === 'undefined') {
-    showToast('❌ Biblioteca Excel não carregou. Tente novamente.', 'err');
-    console.error('XLSX não está disponível');
-    return;
-  }
-
   try {
-    // Preparar dados
-    const allItems = [];
+    // Preparar dados em formato CSV
+    let csv = 'CÓDIGO,DESCRIÇÃO,QTDE,UM,ENDEREÇO\n';
+
     log.forEach(entry => {
       const endereco = `${entry.rua}${String(entry.prat).padStart(2,'0')}`;
       entry.itens.forEach(item => {
-        allItems.push({
-          'CÓDIGO': item.sku,
-          'DESCRIÇÃO': item.nome || '',
-          'QTDE': item.qty,
-          'UM': item.um,
-          'ENDEREÇO': endereco
-        });
+        const sku = `"${item.sku}"`;
+        const desc = `"${(item.nome || '').replace(/"/g, '""')}"`;
+        const qty = item.qty;
+        const um = item.um;
+        const end = endereco;
+        csv += `${sku},${desc},${qty},${um},${end}\n`;
       });
     });
 
-    // Gerar nome do arquivo com operador, data e hora
+    // Gerar nome do arquivo
     const user = getUserName() || 'almoxarife';
     const agora = new Date();
     const data = `${String(agora.getDate()).padStart(2,'0')}-${String(agora.getMonth()+1).padStart(2,'0')}-${agora.getFullYear()}`;
     const hora = `${String(agora.getHours()).padStart(2,'0')}h${String(agora.getMinutes()).padStart(2,'0')}`;
-    const nomeArquivo = `Almox_${user}_${data}_${hora}.xlsx`;
+    const nomeArquivo = `Almox_${user}_${data}_${hora}.csv`;
 
-    // Criar workbook
-    const ws = XLSX.utils.json_to_sheet(allItems);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "Inventário");
+    // Criar blob e fazer download
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.setAttribute('href', url);
+    link.setAttribute('download', nomeArquivo);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
 
-    // Ajustar largura das colunas
-    ws['!cols'] = [
-      { wch: 18 }, // CÓDIGO
-      { wch: 30 }, // DESCRIÇÃO
-      { wch: 10 }, // QTDE
-      { wch: 6 },  // UM
-      { wch: 10 }  // ENDEREÇO
-    ];
-
-    // Download
-    XLSX.writeFile(wb, nomeArquivo);
     showToast(`✓ Arquivo ${nomeArquivo} baixado!`, 'ok');
-    console.log(`Excel exportado: ${nomeArquivo}`);
+    console.log(`CSV exportado: ${nomeArquivo}`);
   } catch (err) {
-    console.error('Erro ao exportar Excel:', err);
-    showToast('❌ Erro ao gerar Excel: ' + err.message, 'err');
+    console.error('Erro ao exportar:', err);
+    showToast('❌ Erro ao gerar arquivo: ' + err.message, 'err');
   }
 }
 
