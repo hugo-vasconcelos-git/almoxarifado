@@ -887,8 +887,19 @@ function confirmarQty() {
   const input = document.getElementById('modalQtyInput');
   const novaQty = parseFloat(input.value) || 1;
 
-  if (_qtyTempo.editandoSku) {
-    // Modo edição
+  if (window._editandoDoLog) {
+    // Modo edição do histórico
+    const { logIdx, itemIdx } = window._editarLogContext;
+    const item = log[logIdx].itens[itemIdx];
+    item.qty = novaQty;
+    item.ajustado = true; // Marca como ajustado
+    window._editandoDoLog = false;
+    window._editarLogContext = null;
+    renderLog();
+    document.getElementById('modalQty').classList.remove('active');
+    showToast(`✏️ ${item.sku} → ${novaQty} un`, 'ok');
+  } else if (_qtyTempo.editandoSku) {
+    // Modo edição durante scan
     const sku = _qtyTempo.editandoSku;
     itens[sku].qty = novaQty;
     itensEditados.add(sku); // Marcar como editado
@@ -911,16 +922,20 @@ function renderLog() {
     return;
   }
   body.innerHTML='';
-  [...log].reverse().forEach(entry=>{
+  [...log].reverse().forEach((entry, idx)=>{
+    const logIdx = log.length - 1 - idx; // Índice real no array
     const el=document.createElement('div');
     el.className='log-entry ok';
-    const itensHtml=entry.itens.map(i=>`
-      <div style="display:flex;flex-direction:column;gap:2px;padding:8px 0;border-bottom:1px solid var(--border);font-size:11px;">
-        <div style="font-family:var(--mono);font-weight:600;color:var(--text);">${i.sku}</div>
-        ${i.nome ? `<div style="color:var(--muted);">${i.nome}</div>` : ''}
-        <div style="display:flex;justify-content:space-between;color:var(--muted);">
-          <span>${i.qty} ${i.um} ${i.ajustado ? '🏷️' : ''}</span>
+    const itensHtml=entry.itens.map((i, itemIdx)=>`
+      <div style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--border);font-size:11px;">
+        <div style="flex:1;">
+          <div style="font-family:var(--mono);font-weight:600;color:var(--text);">${i.sku}</div>
+          ${i.nome ? `<div style="color:var(--muted);">${i.nome}</div>` : ''}
+          <div style="display:flex;justify-content:space-between;color:var(--muted);">
+            <span onclick="editarItemLog(${logIdx}, ${itemIdx})" style="cursor:pointer;text-decoration:underline;">${i.qty} ${i.um} ${i.ajustado ? '🏷️' : ''}</span>
+          </div>
         </div>
+        <button onclick="removerItemLog(${logIdx}, ${itemIdx})" style="background:none;border:none;color:var(--danger);cursor:pointer;font-size:16px;padding:0;">✕</button>
       </div>
     `).join('');
     el.innerHTML=`
@@ -936,6 +951,39 @@ function renderLog() {
 
 function atualizarLogBadge() {
   document.getElementById('logTotal').textContent = log.length;
+}
+
+function editarItemLog(logIdx, itemIdx) {
+  const item = log[logIdx].itens[itemIdx];
+  if (!item) return;
+
+  document.getElementById('modalQtySku').textContent = item.sku;
+  document.getElementById('modalQtyInput').value = item.qty;
+  document.getElementById('modalQty').classList.add('active');
+
+  const input = document.getElementById('modalQtyInput');
+  input.focus();
+  input.select();
+
+  // Armazena contexto de edição do log
+  window._editarLogContext = { logIdx, itemIdx };
+  window._editandoDoLog = true;
+}
+
+function removerItemLog(logIdx, itemIdx) {
+  const item = log[logIdx].itens[itemIdx];
+  if (!confirm(`Remover ${item.sku} do histórico?`)) return;
+
+  log[logIdx].itens.splice(itemIdx, 1);
+
+  // Se endereço ficou vazio, remove o registro
+  if (log[logIdx].itens.length === 0) {
+    log.splice(logIdx, 1);
+  }
+
+  renderLog();
+  atualizarLogBadge();
+  showToast(`✓ Item removido`, 'ok');
 }
 
 /* ══════════════════════════════════
