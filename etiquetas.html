@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Gerador de Etiquetas - Almoxarifado</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: Arial, sans-serif;
+      background: #f5f5f5;
+      padding: 20px;
+    }
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      background: white;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    h1 { margin-bottom: 20px; color: #333; }
+    .config {
+      background: #f9f9f9;
+      padding: 15px;
+      border-radius: 6px;
+      margin-bottom: 20px;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 15px;
+      align-items: end;
+    }
+    label { display: block; font-weight: bold; margin-bottom: 5px; color: #555; }
+    input, select, button {
+      width: 100%;
+      padding: 8px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      font-size: 14px;
+    }
+    button {
+      background: #3b6ef6;
+      color: white;
+      border: none;
+      cursor: pointer;
+      font-weight: bold;
+      transition: background 0.2s;
+    }
+    button:hover { background: #2653d4; }
+    .button-group {
+      display: flex;
+      gap: 10px;
+    }
+    .button-group button { flex: 1; }
+
+    .etiquetas {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: 10px;
+      margin-top: 20px;
+    }
+    .etiqueta {
+      border: 1px solid #ddd;
+      padding: 15px;
+      text-align: center;
+      background: white;
+      page-break-inside: avoid;
+      break-inside: avoid;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
+    .etiqueta h2 {
+      font-size: 28px;
+      margin-bottom: 10px;
+      color: #3b6ef6;
+      font-weight: bold;
+    }
+    .etiqueta p {
+      font-size: 12px;
+      color: #666;
+      margin-bottom: 10px;
+    }
+    .qr-code {
+      display: flex;
+      justify-content: center;
+      margin: 10px 0;
+    }
+    .qr-code canvas, .qr-code img {
+      max-width: 100%;
+      height: auto;
+    }
+    .info {
+      background: #e3f2fd;
+      padding: 15px;
+      border-radius: 4px;
+      margin-bottom: 20px;
+      font-size: 14px;
+      color: #1565c0;
+    }
+
+    @media print {
+      body { background: white; padding: 0; }
+      .container { box-shadow: none; padding: 0; max-width: 100%; }
+      .config, .info, .button-group { display: none; }
+      .etiquetas {
+        grid-template-columns: repeat(3, 1fr);
+        gap: 5px;
+      }
+      .etiqueta {
+        border: 1px solid #999;
+        padding: 10px;
+        page-break-inside: avoid;
+      }
+    }
+
+    .stats {
+      background: #f0f0f0;
+      padding: 10px;
+      border-radius: 4px;
+      font-size: 12px;
+      color: #666;
+    }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <h1>🏷️ Gerador de Etiquetas - Almoxarifado</h1>
+
+  <div class="info">
+    💡 Gere etiquetas com QR Code para suas prateleiras. Configure as ruas e quantidades, depois imprima!
+  </div>
+
+  <div class="config">
+    <div>
+      <label>Rua Inicial (A-O):</label>
+      <select id="ruaInicial">
+        <option>A</option><option>B</option><option>C</option><option>D</option><option>E</option>
+        <option>F</option><option>G</option><option>H</option><option>I</option><option>J</option>
+        <option>K</option><option>L</option><option>M</option><option>N</option><option selected>O</option>
+      </select>
+    </div>
+
+    <div>
+      <label>Rua Final (A-O):</label>
+      <select id="ruaFinal">
+        <option>A</option><option>B</option><option>C</option><option>D</option><option>E</option>
+        <option>F</option><option>G</option><option>H</option><option>I</option><option>J</option>
+        <option>K</option><option>L</option><option>M</option><option>N</option><option selected>O</option>
+      </select>
+    </div>
+
+    <div>
+      <label>Prateleira Inicial (1-54):</label>
+      <input type="number" id="pratInicial" value="1" min="1" max="54">
+    </div>
+
+    <div>
+      <label>Prateleira Final (1-54):</label>
+      <input type="number" id="pratFinal" value="54" min="1" max="54">
+    </div>
+
+    <div class="button-group">
+      <button onclick="gerarEtiquetas()">📋 Gerar Etiquetas</button>
+      <button onclick="window.print()" style="background: #00c9a7;">🖨️ Imprimir</button>
+      <button onclick="limparEtiquetas()" style="background: #e84040;">🗑️ Limpar</button>
+    </div>
+  </div>
+
+  <div id="stats" class="stats" style="display:none;"></div>
+
+  <div id="etiquetas" class="etiquetas"></div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script>
+const RUAS = ['A','B','C','D','E','F','G','H','I','J','K','L','M','N','O'];
+
+function gerarEtiquetas() {
+  const ruaInicial = document.getElementById('ruaInicial').value;
+  const ruaFinal = document.getElementById('ruaFinal').value;
+  const pratInicial = parseInt(document.getElementById('pratInicial').value);
+  const pratFinal = parseInt(document.getElementById('pratFinal').value);
+
+  const idxRuaIni = RUAS.indexOf(ruaInicial);
+  const idxRuaFim = RUAS.indexOf(ruaFinal);
+
+  if (idxRuaIni > idxRuaFim) {
+    alert('Rua Inicial deve ser menor ou igual à Rua Final');
+    return;
+  }
+  if (pratInicial > pratFinal) {
+    alert('Prateleira Inicial deve ser menor ou igual à Prateleira Final');
+    return;
+  }
+
+  const container = document.getElementById('etiquetas');
+  container.innerHTML = '';
+  let count = 0;
+
+  for (let i = idxRuaIni; i <= idxRuaFim; i++) {
+    const rua = RUAS[i];
+    for (let prat = pratInicial; prat <= pratFinal; prat++) {
+      const codigo = `${rua}${String(prat).padStart(2, '0')}`;
+
+      const etiqueta = document.createElement('div');
+      etiqueta.className = 'etiqueta';
+
+      const qrId = `qr-${codigo}`;
+      etiqueta.innerHTML = `
+        <h2>${rua}</h2>
+        <p>Prateleira ${prat}</p>
+        <div class="qr-code" id="${qrId}"></div>
+        <p style="font-size:11px; color:#999; margin-top:5px;">${codigo}</p>
+      `;
+
+      container.appendChild(etiqueta);
+
+      // Gerar QR Code após adicionar ao DOM
+      setTimeout(() => {
+        if (document.getElementById(qrId)) {
+          new QRCode(document.getElementById(qrId), {
+            text: codigo,
+            width: 120,
+            height: 120,
+            colorDark: '#000000',
+            colorLight: '#ffffff',
+            correctLevel: QRCode.CorrectLevel.H
+          });
+        }
+      }, 10);
+
+      count++;
+    }
+  }
+
+  // Mostrar estatísticas
+  const stats = document.getElementById('stats');
+  stats.style.display = 'block';
+  stats.innerHTML = `✓ ${count} etiquetas geradas (${ruaInicial}-${ruaFinal}, prateleiras ${pratInicial}-${pratFinal})`;
+}
+
+function limparEtiquetas() {
+  document.getElementById('etiquetas').innerHTML = '';
+  document.getElementById('stats').style.display = 'none';
+}
+
+// Gerar ao carregar (padrão: todas as prateleiras da rua O)
+window.addEventListener('load', () => {
+  setTimeout(gerarEtiquetas, 500);
+});
+</script>
+
+</body>
+</html>
