@@ -1046,7 +1046,23 @@ function carregarSB1(event) {
       sb1Data = {};
       localStorage.removeItem('almoxSB1');
 
-      const json = JSON.parse(e.target.result);
+      let conteudo = e.target.result;
+      let json;
+
+      // Tentar fazer parse como JSON normalmente
+      try {
+        json = JSON.parse(conteudo);
+      } catch (err) {
+        // Se falhar, tentar descriptografar de Base64
+        try {
+          const bytes = Uint8Array.from(atob(conteudo), c => c.charCodeAt(0));
+          conteudo = new TextDecoder().decode(bytes);
+          json = JSON.parse(conteudo);
+          console.log('✓ Arquivo Base64 descriptografado');
+        } catch (decErr) {
+          throw new Error('Arquivo inválido - não é JSON nem Base64');
+        }
+      }
 
       // Suporta múltiplos formatos
       let items = [];
