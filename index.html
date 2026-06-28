@@ -1000,7 +1000,8 @@ function prepararItensParaExportacao() {
         qty: item.qty,
         um: item.um,
         endereco: endereco,
-        ajustado: item.ajustado || false
+        ajustado: item.ajustado || false,
+        timestamp: entry.ts
       });
     });
   });
@@ -1085,7 +1086,8 @@ function exportarExcel() {
       'UM': item.um,
       'ENDEREÇO': item.endereco,
       'QTDE AJUSTADA': item.ajustado ? '🏷️' : '-',
-      'USUÁRIO': user
+      'USUÁRIO': user,
+      'DATA/HORA': item.timestamp
     }));
     const agora = new Date();
     const data = `${String(agora.getDate()).padStart(2,'0')}-${String(agora.getMonth()+1).padStart(2,'0')}-${agora.getFullYear()}`;
@@ -1105,7 +1107,8 @@ function exportarExcel() {
       { wch: 6 },  // UM
       { wch: 10 }, // ENDEREÇO
       { wch: 16 }, // AJUSTADO
-      { wch: 18 }  // USUÁRIO
+      { wch: 18 }, // USUÁRIO
+      { wch: 16 }  // DATA/HORA
     ];
 
     // Download
@@ -1383,6 +1386,16 @@ document.addEventListener('DOMContentLoaded',()=>{
       if (codigo) {
         processarEndereco(codigo);
         document.getElementById('inputEndereco').style.display = 'none';
+
+        // Ativar automaticamente o modo leitor de itens após abrir endereço
+        if (fase === 'open') {
+          setTimeout(() => {
+            const btnLeitor = document.querySelector('button[onclick="ativarLeitorUsb()"]');
+            if (btnLeitor && !btnLeitor.classList.contains('green')) {
+              ativarLeitorUsb(); // Ativa modo leitor automaticamente
+            }
+          }, 100);
+        }
       }
     }
   });
