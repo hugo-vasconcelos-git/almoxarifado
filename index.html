@@ -189,8 +189,12 @@
     <!-- Seletor de endereço (visível só quando idle) -->
     <div id="seletorEndereco">
       <button class="scan-btn" onclick="abrirCameraEndereco()" style="font-size:15px;padding:14px;margin-bottom:10px;">
-        <span class="icon">📷</span> Bipar endereço (QR Code)
+        <span class="icon">📷</span> Bipar endereço (câmera)
       </button>
+      <button class="scan-btn ghost" onclick="ativarLeitorEndereco()" style="font-size:14px;padding:12px;margin-bottom:10px;">
+        <span class="icon">📱</span> Bipar endereço por leitor USB
+      </button>
+      <input type="text" id="inputEndereco" placeholder="Leitor USB: aponte aqui" style="display:none;margin-bottom:10px;padding:10px;border:1px solid var(--border);border-radius:8px;font-family:var(--mono);">
 
       <div class="manual-wrap">
         <label>Ou selecionar manualmente</label>
@@ -589,6 +593,14 @@ function adicionarItem(sku, qty) {
    ABRIR / FECHAR
 ══════════════════════════════════ */
 // ── BIPAR ENDEREÇO (RUA + PRATELEIRA) ──
+function ativarLeitorEndereco() {
+  const input = document.getElementById('inputEndereco');
+  input.style.display = 'block';
+  input.value = '';
+  input.focus();
+  showToast('📱 Modo leitor ativo - aponte para o endereço', 'ok');
+}
+
 function abrirCameraEndereco() {
   document.getElementById('camLabel').textContent = 'Aponte para o QR Code da prateleira';
   document.getElementById('cameraOverlay').classList.add('active');
@@ -1112,6 +1124,18 @@ document.addEventListener('DOMContentLoaded',()=>{
   // Enter na modal de quantidade
   document.getElementById('modalQtyInput').addEventListener('keydown', e => {
     if (e.key === 'Enter') confirmarQty();
+  });
+
+  // Enter no input de endereço (leitor USB)
+  document.getElementById('inputEndereco').addEventListener('keydown', e => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      const codigo = document.getElementById('inputEndereco').value.trim().toUpperCase();
+      if (codigo) {
+        processarEndereco(codigo);
+        document.getElementById('inputEndereco').style.display = 'none';
+      }
+    }
   });
 });
 </script>
