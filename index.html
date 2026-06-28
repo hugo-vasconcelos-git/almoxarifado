@@ -919,6 +919,24 @@ function atualizarLogBadge() {
 /* ══════════════════════════════════
    EXPORTAR
 ══════════════════════════════════ */
+function prepararItensParaExportacao() {
+  const allItems = [];
+  log.forEach(entry => {
+    const endereco = `${entry.rua}${String(entry.prat).padStart(2,'0')}`;
+    entry.itens.forEach(item => {
+      allItems.push({
+        sku: item.sku,
+        nome: item.nome || '',
+        qty: item.qty,
+        um: item.um,
+        endereco: endereco,
+        ajustado: itensEditados.has(item.sku)
+      });
+    });
+  });
+  return allItems;
+}
+
 function gerarTexto() {
   if (!log.length) return 'Nenhum dado registrado.';
   const linhas = [];
@@ -933,19 +951,7 @@ function gerarTexto() {
   linhas.push('');
 
   // Coletar todos os itens com seu endereço
-  const allItems = [];
-  log.forEach(entry => {
-    const endereco = `${entry.rua}${String(entry.prat).padStart(2,'0')}`;
-    entry.itens.forEach(item => {
-      allItems.push({
-        sku: item.sku,
-        nome: item.nome || '',
-        qty: item.qty,
-        um: item.um,
-        endereco: endereco
-      });
-    });
-  });
+  const allItems = prepararItensParaExportacao();
 
   // Header com novo formato
   linhas.push('CODIGO           | DESCRIÇÃO                       | QTDE | UM | ENDEREÇO');
@@ -953,7 +959,8 @@ function gerarTexto() {
   allItems.forEach(item => {
     const sku = item.sku.padEnd(16);
     const desc = item.nome.padEnd(31);
-    const qty = String(item.qty).padEnd(4);
+    const marca = item.ajustado ? '*qtde.ajustada*' : '';
+    const qty = (String(item.qty) + ' ' + marca).padEnd(4);
     const um = item.um.padEnd(2);
     const endereco = item.endereco;
     linhas.push(`${sku} | ${desc} | ${qty} | ${um} | ${endereco}`);
@@ -1001,20 +1008,15 @@ function exportarExcel() {
   try {
     // Gerar nome do arquivo e preparar dados
     const user = getUserName() || 'almoxarife';
-    const allItems = [];
-    log.forEach(entry => {
-      const endereco = `${entry.rua}${String(entry.prat).padStart(2,'0')}`;
-      entry.itens.forEach(item => {
-        allItems.push({
-          'CÓDIGO': item.sku,
-          'DESCRIÇÃO': item.nome || '',
-          'QTDE': item.qty,
-          'UM': item.um,
-          'ENDEREÇO': endereco,
-          'USUÁRIO': user
-        });
-      });
-    });
+    const allItems = prepararItensParaExportacao().map(item => ({
+      'CÓDIGO': item.sku,
+      'DESCRIÇÃO': item.nome,
+      'QTDE': item.qty,
+      'UM': item.um,
+      'ENDEREÇO': item.endereco,
+      'AJUSTADO': item.ajustado ? '*qtde.ajustada*' : '',
+      'USUÁRIO': user
+    }));
     const agora = new Date();
     const data = `${String(agora.getDate()).padStart(2,'0')}-${String(agora.getMonth()+1).padStart(2,'0')}-${agora.getFullYear()}`;
     const hora = `${String(agora.getHours()).padStart(2,'0')}h${String(agora.getMinutes()).padStart(2,'0')}`;
@@ -1032,6 +1034,7 @@ function exportarExcel() {
       { wch: 10 }, // QTDE
       { wch: 6 },  // UM
       { wch: 10 }, // ENDEREÇO
+      { wch: 16 }, // AJUSTADO
       { wch: 18 }  // USUÁRIO
     ];
 
@@ -1080,12 +1083,10 @@ async function copiarWhatsapp() {
 
   try {
     const user = getUserName() || 'almoxarife';
-    const linhas = [];
-    log.forEach(entry => {
-      const endereco = `${entry.rua}${String(entry.prat).padStart(2,'0')}`;
-      entry.itens.forEach(item => {
-        linhas.push(`${item.sku}-${item.qty}-${endereco}-${user}`);
-      });
+    const allItems = prepararItensParaExportacao();
+    const linhas = allItems.map(item => {
+      const marca = item.ajustado ? '*' : '';
+      return `${item.sku}-${item.qty}${marca}-${item.endereco}-${user}`;
     });
 
     const texto = linhas.join('\n');
