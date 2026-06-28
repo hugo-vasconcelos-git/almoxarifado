@@ -72,6 +72,16 @@
       box-shadow: 0 1px 3px rgba(0,0,0,0.1);
       height: 80px;
     }
+    .etiqueta.estante {
+      height: 80px;
+      padding: 4px;
+      gap: 8px;
+    }
+    .etiqueta.pallete {
+      height: 220px;
+      padding: 10px;
+      gap: 15px;
+    }
     .etiqueta-esquerda, .etiqueta-direita {
       display: flex;
       flex-direction: column;
@@ -87,12 +97,18 @@
       font-weight: bold;
       line-height: 1;
     }
+    .etiqueta.pallete h2 {
+      font-size: 48px;
+    }
     .etiqueta p {
       font-size: 14px;
       color: #333;
       margin: 0;
       line-height: 1;
       font-weight: 600;
+    }
+    .etiqueta.pallete p {
+      font-size: 24px;
     }
     .qr-code {
       display: flex;
@@ -148,6 +164,14 @@
   </div>
 
   <div class="config">
+    <div>
+      <label>Tipo de Etiqueta:</label>
+      <select id="tipoEtiqueta" onchange="atualizarTamanho()">
+        <option value="estante" selected>📦 ESTANTES METÁLICAS (75x75px)</option>
+        <option value="pallete">🚚 PORTA PALETES (200x200px)</option>
+      </select>
+    </div>
+
     <div>
       <label>Rua Inicial (A-O):</label>
       <select id="ruaInicial">
@@ -214,13 +238,16 @@ function gerarEtiquetas() {
   container.innerHTML = '';
   let count = 0;
 
+  const tipo = document.getElementById('tipoEtiqueta').value;
+  const qrSize = tipo === 'pallete' ? 200 : 75;
+
   for (let i = idxRuaIni; i <= idxRuaFim; i++) {
     const rua = RUAS[i];
     for (let prat = pratInicial; prat <= pratFinal; prat++) {
       const codigo = `${rua}${String(prat).padStart(2, '0')}`;
 
       const etiqueta = document.createElement('div');
-      etiqueta.className = 'etiqueta';
+      etiqueta.className = `etiqueta ${tipo}`;
 
       const qrId = `qr-${codigo}`;
       etiqueta.innerHTML = `
@@ -241,8 +268,8 @@ function gerarEtiquetas() {
         if (document.getElementById(qrId)) {
           new QRCode(document.getElementById(qrId), {
             text: codigo,
-            width: 75,
-            height: 75,
+            width: qrSize,
+            height: qrSize,
             colorDark: '#000000',
             colorLight: '#ffffff',
             correctLevel: QRCode.CorrectLevel.H
@@ -263,6 +290,10 @@ function gerarEtiquetas() {
 function limparEtiquetas() {
   document.getElementById('etiquetas').innerHTML = '';
   document.getElementById('stats').style.display = 'none';
+}
+
+function atualizarTamanho() {
+  gerarEtiquetas();
 }
 
 // Gerar ao carregar (padrão: todas as prateleiras da rua O)
