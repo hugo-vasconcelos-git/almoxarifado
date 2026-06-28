@@ -56,9 +56,10 @@
 
     .etiquetas {
       display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-      gap: 10px;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 5px;
       margin-top: 20px;
+      max-width: 29.7cm;
     }
     .etiqueta {
       border: 1px solid #ddd;
@@ -78,9 +79,10 @@
       gap: 8px;
     }
     .etiqueta.pallete {
-      height: 220px;
-      padding: 10px;
-      gap: 15px;
+      height: 6.5cm;
+      width: 9cm;
+      padding: 8px;
+      gap: 10px;
     }
     .etiqueta-esquerda, .etiqueta-direita {
       display: flex;
@@ -98,7 +100,7 @@
       line-height: 1;
     }
     .etiqueta.pallete h2 {
-      font-size: 48px;
+      font-size: 32px;
     }
     .etiqueta p {
       font-size: 14px;
@@ -108,7 +110,7 @@
       font-weight: 600;
     }
     .etiqueta.pallete p {
-      font-size: 24px;
+      font-size: 16px;
     }
     .qr-code {
       display: flex;
