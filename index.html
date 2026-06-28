@@ -277,9 +277,6 @@
       <button class="scan-btn" onclick="exportarExcel()">
         <span class="icon">📊</span> Exportar para Excel (.xlsx)
       </button>
-      <button class="scan-btn" onclick="compartilhar()">
-        <span class="icon">📤</span> Compartilhar / Salvar em Notas
-      </button>
       <button class="scan-btn ghost" onclick="limparTudo()" style="font-size:13px;padding:12px;color:var(--danger);border-color:var(--danger);">
         🗑 Limpar tudo
       </button>
@@ -822,7 +819,13 @@ function renderLog() {
     const el=document.createElement('div');
     el.className='log-entry ok';
     const itensHtml=entry.itens.map(i=>`
-      <div class="log-item-row">${i.sku}<span>${i.qty} ${i.um}</span></div>
+      <div style="display:flex;flex-direction:column;gap:2px;padding:8px 0;border-bottom:1px solid var(--border);font-size:11px;">
+        <div style="font-family:var(--mono);font-weight:600;color:var(--text);">${i.sku}</div>
+        ${i.nome ? `<div style="color:var(--muted);">${i.nome}</div>` : ''}
+        <div style="display:flex;justify-content:space-between;color:var(--muted);">
+          <span>${i.qty} ${i.um}</span>
+        </div>
+      </div>
     `).join('');
     el.innerHTML=`
       <div class="log-head-row">
@@ -852,7 +855,7 @@ function gerarTexto() {
   linhas.push(`Data: ${data}, ${hora}`);
   const user = getUserName();
   if (user) linhas.push('Operador: ' + user);
-  linhas.push('═'.repeat(52));
+  linhas.push('═'.repeat(100));
   linhas.push('');
 
   // Coletar todos os itens com seu endereço
@@ -862,6 +865,7 @@ function gerarTexto() {
     entry.itens.forEach(item => {
       allItems.push({
         sku: item.sku,
+        nome: item.nome || '',
         qty: item.qty,
         um: item.um,
         endereco: endereco
@@ -869,30 +873,20 @@ function gerarTexto() {
     });
   });
 
-  // Header da tabela
-  const temNomes = allItems.some(i => i.nome);
-  if (temNomes) {
-    linhas.push('CODIGO       | QTDE        | DESCRIÇÃO');
-    linhas.push('─'.repeat(70));
-    allItems.forEach(item => {
-      const sku = item.sku.padEnd(12);
-      const qty = `${item.qty} ${item.um}`.padEnd(11);
-      const nome = item.nome || item.endereco;
-      linhas.push(`${sku} | ${qty} | ${nome}`);
-    });
-  } else {
-    linhas.push('CODIGO              | QTDE        | ENDEREÇO');
-    linhas.push('─'.repeat(52));
-    allItems.forEach(item => {
-      const sku = item.sku.padEnd(19);
-      const qty = `${item.qty} ${item.um}`.padEnd(11);
-      const endereco = item.endereco;
-      linhas.push(`${sku} | ${qty} | ${endereco}`);
-    });
-  }
+  // Header com novo formato
+  linhas.push('CODIGO           | DESCRIÇÃO                       | QTDE | UM | ENDEREÇO');
+  linhas.push('─'.repeat(100));
+  allItems.forEach(item => {
+    const sku = item.sku.padEnd(16);
+    const desc = item.nome.padEnd(31);
+    const qty = String(item.qty).padEnd(4);
+    const um = item.um.padEnd(2);
+    const endereco = item.endereco;
+    linhas.push(`${sku} | ${desc} | ${qty} | ${um} | ${endereco}`);
+  });
 
   linhas.push('');
-  linhas.push('═'.repeat(52));
+  linhas.push('═'.repeat(100));
   linhas.push(`Total de ruas: ${log.length}`);
   linhas.push(`Total de SKUs: ${log.reduce((s,e)=>s+e.itens.length,0)}`);
   return linhas.join('\n');
