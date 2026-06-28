@@ -77,6 +77,8 @@
   .item-qty{font-family:var(--mono);font-size:18px;font-weight:600;color:var(--green);display:block;}
   .item-um{font-size:10px;color:var(--muted);}
   .item-del{background:transparent;border:none;color:var(--muted);font-size:18px;padding:4px 6px;cursor:pointer;}
+  .item-row.editado{background:color-mix(in srgb,var(--danger) 15%,transparent);}
+  .item-row.editado .item-sku{color:var(--danger);font-weight:700;}
   .empty{padding:28px 16px;text-align:center;color:var(--muted);font-size:13px;display:flex;flex-direction:column;align-items:center;gap:8px;}
   .empty .icon{font-size:32px;opacity:.2;}
 
@@ -277,6 +279,9 @@
       <button class="scan-btn" onclick="exportarExcel()">
         <span class="icon">📊</span> Exportar para Excel (.xlsx)
       </button>
+      <button class="scan-btn" onclick="copiarWhatsapp()" style="background:#25d366;color:#fff;">
+        <span class="icon">💬</span> Copiar para WhatsApp
+      </button>
       <button class="scan-btn ghost" onclick="limparTudo()" style="font-size:13px;padding:12px;color:var(--danger);border-color:var(--danger);">
         🗑 Limpar tudo
       </button>
@@ -354,6 +359,7 @@ let ruaAtual    = '';
 let pratAtual   = '';
 let itens       = {};
 let lidos       = new Set(); // incrementais já lidos neste endereço
+let itensEditados = new Set(); // rastrear itens com quantidade editada manualmente
 let log         = [];
 let ruaSel      = '';
 let modoLeitor  = false; // modo contínuo de leitor USB
@@ -479,7 +485,26 @@ function processarManual() {
 
 function processar(raw) {
   if (fase !== 'open') { showToast('Abra um endereço primeiro', 'warn'); return; }
+  fazerBeep();
   processarItem(raw);
+}
+
+function fazerBeep() {
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.frequency.value = 800;
+    osc.type = 'sine';
+    gain.gain.setValueAtTime(0.3, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.1);
+    osc.start(ctx.currentTime);
+    osc.stop(ctx.currentTime + 0.1);
+  } catch(e) {
+    console.log('Áudio não disponível');
+  }
 }
 
 // Formato Audax: SKU-QUANTIDADE-INCREMENTAL  (ex: 21610954600101-123-136050)
@@ -666,7 +691,7 @@ function processarEndereco(codigo) {
 }
 
 function abrirEndereco(rua, prat) {
-  fase = 'open'; ruaAtual = rua; pratAtual = prat; itens = {}; lidos = new Set();
+  fase = 'open'; ruaAtual = rua; pratAtual = prat; itens = {}; lidos = new Set(); itensEditados = new Set();
   document.getElementById('seletorEndereco').style.display = 'none';
   document.getElementById('secaoItens').style.display      = 'flex';
   atualizarStatus();
@@ -699,7 +724,7 @@ function fecharEndereco() {
    RENDER
 ══════════════════════════════════ */
 function cancelar(silencioso=false) {
-  fase = 'idle'; ruaAtual = ''; pratAtual = ''; itens = {}; lidos = new Set(); ruaSel = '';
+  fase = 'idle'; ruaAtual = ''; pratAtual = ''; itens = {}; lidos = new Set(); itensEditados = new Set(); ruaSel = '';
   document.querySelectorAll('.rua-cel').forEach(c=>c.classList.remove('sel'));
   document.getElementById('selPrateleira').value = '';
   document.getElementById('btnAbrir').disabled = true;
@@ -755,7 +780,9 @@ function renderLista(highlightSku='') {
   list.innerHTML='';
   arr.forEach(item=>{
     const row=document.createElement('div');
-    row.className='item-row'+(item.sku===highlightSku?' flash':'');
+    let className = 'item-row' + (item.sku===highlightSku?' flash':'');
+    if (itensEditados.has(item.sku)) className += ' editado';
+    row.className = className;
     row.id='row-'+item.sku;
     row.style.cursor='pointer';
     const nomeHTML = item.nome ? `<div style="font-size:11px;color:var(--muted);margin-top:4px;">${item.nome}</div>` : '';
@@ -808,6 +835,7 @@ function confirmarQty() {
     // Modo edição
     const sku = _qtyTempo.editandoSku;
     itens[sku].qty = novaQty;
+    itensEditados.add(sku); // Marcar como editado
     _qtyTempo.editandoSku = null;
     renderLista();
     atualizarStatus();
@@ -1007,6 +1035,29 @@ async function compartilhar() {
     a.download = nome;
     a.click();
     showToast('✅ Arquivo baixado', 'ok');
+  }
+}
+
+async function copiarWhatsapp() {
+  if (!log.length) {
+    showToast('Nenhum dado para copiar', 'warn');
+    return;
+  }
+
+  try {
+    const linhas = [];
+    log.forEach(entry => {
+      const endereco = `${entry.rua}${String(entry.prat).padStart(2,'0')}`;
+      entry.itens.forEach(item => {
+        linhas.push(`${item.sku}-${item.qty}-${endereco}`);
+      });
+    });
+
+    const texto = linhas.join('\n');
+    await navigator.clipboard.writeText(texto);
+    showToast('✅ Copiado! Cole no WhatsApp', 'ok');
+  } catch(e) {
+    showToast('❌ Erro ao copiar', 'err');
   }
 }
 
