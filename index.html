@@ -274,6 +274,9 @@
       <button class="scan-btn green" onclick="exportarTexto()">
         <span class="icon">📋</span> Copiar para área de transferência
       </button>
+      <button class="scan-btn" onclick="exportarExcel()">
+        <span class="icon">📊</span> Exportar para Excel (.xlsx)
+      </button>
       <button class="scan-btn" onclick="compartilhar()">
         <span class="icon">📤</span> Compartilhar / Salvar em Notas
       </button>
@@ -338,6 +341,9 @@
 
 <!-- ZXing para leitura de QR via câmera (melhor para etiquetas densas) -->
 <script src="https://unpkg.com/@zxing/library@0.19.1/umd/index.min.js"></script>
+
+<!-- SheetJS para exportar Excel -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.min.js"></script>
 
 <script>
 /* ══════════════════════════════════
@@ -562,17 +568,22 @@ function ativarLeitorUsb() {
 }
 
 function adicionarItem(sku, qty) {
-  // Buscar dados do SB1 se existir (opcional, sem validação obrigatória)
+  // Validar contra SB1 (obrigatório se SB1 carregado)
   const produtoSB1 = sb1Data[sku];
+
+  // Se SB1 foi carregado (tem produtos), validar obrigatoriamente
+  if (Object.keys(sb1Data).length > 0 && !produtoSB1) {
+    showToast(`❌ SKU não cadastrado na SB1: ${sku}`, 'err');
+    return;
+  }
+
   let nome = '';
   let um = 'UN';
 
   if (produtoSB1) {
     nome = produtoSB1.b1_desc || produtoSB1.B1_DESC || '';
     um = produtoSB1.b1_um || produtoSB1.B1_UM || 'UN';
-    console.log(`SB1 encontrado para ${sku}: ${nome} (${um})`);
-  } else {
-    console.log(`SB1 não encontrado para ${sku}`);
+    console.log(`✓ SB1 encontrado para ${sku}: ${nome} (${um})`);
   }
 
   const existe = !!itens[sku];
@@ -905,6 +916,53 @@ async function exportarTexto() {
     window.getSelection().addRange(range);
     showToast('Selecione e copie o texto acima', 'warn');
   }
+}
+
+function exportarExcel() {
+  if (!log.length) {
+    showToast('Nenhum dado para exportar', 'warn');
+    return;
+  }
+
+  // Preparar dados
+  const allItems = [];
+  log.forEach(entry => {
+    const endereco = `${entry.rua}${String(entry.prat).padStart(2,'0')}`;
+    entry.itens.forEach(item => {
+      allItems.push({
+        'CÓDIGO': item.sku,
+        'DESCRIÇÃO': item.nome || '',
+        'QTDE': item.qty,
+        'UM': item.um,
+        'ENDEREÇO': endereco
+      });
+    });
+  });
+
+  // Gerar nome do arquivo com operador, data e hora
+  const user = getUserName() || 'almoxarife';
+  const agora = new Date();
+  const data = `${String(agora.getDate()).padStart(2,'0')}-${String(agora.getMonth()+1).padStart(2,'0')}-${agora.getFullYear()}`;
+  const hora = `${String(agora.getHours()).padStart(2,'0')}h${String(agora.getMinutes()).padStart(2,'0')}`;
+  const nomeArquivo = `Almox_${user}_${data}_${hora}.xlsx`;
+
+  // Criar workbook
+  const ws = XLSX.utils.json_to_sheet(allItems);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, "Inventário");
+
+  // Ajustar largura das colunas
+  ws['!cols'] = [
+    { wch: 18 }, // CÓDIGO
+    { wch: 30 }, // DESCRIÇÃO
+    { wch: 10 }, // QTDE
+    { wch: 6 },  // UM
+    { wch: 10 }  // ENDEREÇO
+  ];
+
+  // Download
+  XLSX.writeFile(wb, nomeArquivo);
+  showToast(`✓ Arquivo ${nomeArquivo} baixado!`, 'ok');
 }
 
 async function compartilhar() {
