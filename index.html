@@ -475,18 +475,58 @@ function processarManual() {
   const skuEl = document.getElementById('manualSku');
   const raw = skuEl.value.trim().toUpperCase();
   if (!raw) return;
-  if (fase !== 'open') { showToast('Abra um endereço primeiro', 'warn'); return; }
-  // Chama processarItem para fazer parse correto de SKU-QTY-INCREMENTAL
-  processarItem(raw);
+  processarScanAutomatico(raw);
   skuEl.value = '';
   document.getElementById('manualQty').value = '1';
   skuEl.focus();
 }
 
 function processar(raw) {
-  if (fase !== 'open') { showToast('Abra um endereço primeiro', 'warn'); return; }
   fazerBeep();
-  processarItem(raw);
+  processarScanAutomatico(raw);
+}
+
+function processarScanAutomatico(raw) {
+  // Detectar se é endereço ou SKU
+  const matchEndereco = raw.match(/^([A-O])(\d{1,2})$/);
+
+  if (matchEndereco) {
+    // É um endereço (ex: A50, B07, O54)
+    const rua = matchEndereco[1];
+    const prat = parseInt(matchEndereco[2]);
+
+    if (prat < 1 || prat > 54) {
+      showToast(`❌ Prateleira fora do intervalo (1-54): ${prat}`, 'err');
+      return;
+    }
+
+    // Se endereço é igual ao atual, ignora (já está aberto)
+    if (fase === 'open' && ruaAtual === rua && pratAtual === prat) {
+      showToast(`ℹ️ Já está em ${rua}${String(prat).padStart(2,'0')}`, 'warn');
+      return;
+    }
+
+    // Se tem endereço aberto e é diferente, fecha o anterior
+    if (fase === 'open' && (ruaAtual !== rua || pratAtual !== prat)) {
+      if (Object.keys(itens).length > 0) {
+        fecharEndereco();
+        setTimeout(() => abrirEndereco(rua, prat), 1000);
+      } else {
+        abrirEndereco(rua, prat);
+      }
+    } else {
+      // Abre novo endereço
+      abrirEndereco(rua, prat);
+    }
+    showToast(`✓ Endereço ${rua}${String(prat).padStart(2,'0')} aberto!`, 'ok');
+  } else {
+    // É um SKU/componente
+    if (fase !== 'open') {
+      showToast('📍 Primeiro escaneia o endereço (ex: A50)', 'warn');
+      return;
+    }
+    processarItem(raw);
+  }
 }
 
 function fazerBeep() {
@@ -966,6 +1006,7 @@ function exportarExcel() {
 
   try {
     // Preparar dados
+    const user = getUserName() || 'almoxarife';
     const allItems = [];
     log.forEach(entry => {
       const endereco = `${entry.rua}${String(entry.prat).padStart(2,'0')}`;
@@ -975,7 +1016,8 @@ function exportarExcel() {
           'DESCRIÇÃO': item.nome || '',
           'QTDE': item.qty,
           'UM': item.um,
-          'ENDEREÇO': endereco
+          'ENDEREÇO': endereco,
+          'USUÁRIO': user
         });
       });
     });
@@ -998,7 +1040,8 @@ function exportarExcel() {
       { wch: 30 }, // DESCRIÇÃO
       { wch: 10 }, // QTDE
       { wch: 6 },  // UM
-      { wch: 10 }  // ENDEREÇO
+      { wch: 10 }, // ENDEREÇO
+      { wch: 18 }  // USUÁRIO
     ];
 
     // Download
@@ -1045,11 +1088,12 @@ async function copiarWhatsapp() {
   }
 
   try {
+    const user = getUserName() || 'almoxarife';
     const linhas = [];
     log.forEach(entry => {
       const endereco = `${entry.rua}${String(entry.prat).padStart(2,'0')}`;
       entry.itens.forEach(item => {
-        linhas.push(`${item.sku}-${item.qty}-${endereco}`);
+        linhas.push(`${item.sku}-${item.qty}-${endereco}-${user}`);
       });
     });
 
