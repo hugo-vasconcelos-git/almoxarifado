@@ -746,7 +746,7 @@ function fecharEndereco() {
     rua:  ruaAtual,
     prat: pratAtual,
     ts:   agora(),
-    itens: Object.values(itens).map(i=>({...i}))
+    itens: Object.values(itens).map(i=>({...i, ajustado: itensEditados.has(i.sku)}))
   });
   atualizarLogBadge();
   renderLog();
@@ -930,7 +930,7 @@ function prepararItensParaExportacao() {
         qty: item.qty,
         um: item.um,
         endereco: endereco,
-        ajustado: itensEditados.has(item.sku)
+        ajustado: item.ajustado || false
       });
     });
   });
