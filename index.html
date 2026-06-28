@@ -390,9 +390,9 @@ window.addEventListener('DOMContentLoaded', () => {
     grid.appendChild(cel);
   });
 
-  // Select de prateleiras 1–54
+  // Select de prateleiras 1–200
   const sel = document.getElementById('selPrateleira');
-  for (let i = 1; i <= 54; i++) {
+  for (let i = 1; i <= 200; i++) {
     const opt = document.createElement('option');
     opt.value = i;
     opt.textContent = i;
@@ -495,8 +495,8 @@ function processarScanInteligente(raw) {
     const rua = matchEndereco[1];
     const prat = parseInt(matchEndereco[2]);
 
-    if (prat < 1 || prat > 54) {
-      showToast(`❌ Prateleira fora do intervalo: ${prat}`, 'err');
+    if (prat < 1 || prat > 200) {
+      showToast(`❌ Prateleira fora do intervalo (1-200): ${prat}`, 'err');
       return;
     }
 
@@ -732,8 +732,8 @@ function processarEndereco(codigo) {
   const rua = match[1];
   const prat = parseInt(match[2]);
 
-  if (prat < 1 || prat > 54) {
-    showToast(`❌ Prateleira fora do intervalo (1-54): ${prat}`, 'err');
+  if (prat < 1 || prat > 200) {
+    showToast(`❌ Prateleira fora do intervalo (1-200): ${prat}`, 'err');
     return;
   }
 
