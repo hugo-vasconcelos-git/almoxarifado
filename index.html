@@ -897,7 +897,7 @@ function renderLog() {
         <div style="font-family:var(--mono);font-weight:600;color:var(--text);">${i.sku}</div>
         ${i.nome ? `<div style="color:var(--muted);">${i.nome}</div>` : ''}
         <div style="display:flex;justify-content:space-between;color:var(--muted);">
-          <span>${i.qty} ${i.um}</span>
+          <span>${i.qty} ${i.um} ${i.ajustado ? '🏷️' : ''}</span>
         </div>
       </div>
     `).join('');
@@ -959,7 +959,8 @@ function gerarTexto() {
   allItems.forEach(item => {
     const sku = item.sku.padEnd(16);
     const desc = item.nome.padEnd(31);
-    const qty = String(item.qty).padEnd(4);
+    const marca = item.ajustado ? '🏷️' : '';
+    const qty = (String(item.qty) + ' ' + marca).padEnd(4);
     const um = item.um.padEnd(2);
     const endereco = item.endereco;
     linhas.push(`${sku} | ${desc} | ${qty} | ${um} | ${endereco}`);
