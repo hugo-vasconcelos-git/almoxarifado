@@ -763,6 +763,7 @@ function fecharEndereco(mudarAba = true) {
     rua:  ruaAtual,
     prat: pratAtual,
     ts:   agora(),
+    tsOrdenavel: agoraOrdenavel(),
     itens: Object.values(itens).map(i=>({...i, ajustado: itensEditados.has(i.sku)}))
   });
   atualizarLogBadge();
@@ -1001,7 +1002,7 @@ function prepararItensParaExportacao() {
         um: item.um,
         endereco: endereco,
         ajustado: item.ajustado || false,
-        timestamp: entry.ts
+        timestamp: entry.tsOrdenavel || entry.ts
       });
     });
   });
@@ -1185,6 +1186,14 @@ function agora() {
   const d=new Date();
   return `${pad(d.getHours())}:${pad(d.getMinutes())} · ${pad(d.getDate())}/${pad(d.getMonth()+1)}`;
 }
+
+function agoraOrdenavel() {
+  // Formato ordenável para Excel: DD/MM/YY HH:MM
+  const d=new Date();
+  const yy = String(d.getFullYear()).slice(-2);
+  return `${pad(d.getDate())}/${pad(d.getMonth()+1)}/${yy} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
 function pad(n){return String(n).padStart(2,'0');}
 
 let _t;
