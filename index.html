@@ -959,8 +959,7 @@ function gerarTexto() {
   allItems.forEach(item => {
     const sku = item.sku.padEnd(16);
     const desc = item.nome.padEnd(31);
-    const marca = item.ajustado ? '*qtde.ajustada*' : '';
-    const qty = (String(item.qty) + ' ' + marca).padEnd(4);
+    const qty = String(item.qty).padEnd(4);
     const um = item.um.padEnd(2);
     const endereco = item.endereco;
     linhas.push(`${sku} | ${desc} | ${qty} | ${um} | ${endereco}`);
@@ -1014,7 +1013,7 @@ function exportarExcel() {
       'QTDE': item.qty,
       'UM': item.um,
       'ENDEREÇO': item.endereco,
-      'AJUSTADO': item.ajustado ? '*qtde.ajustada*' : '',
+      'QTDE AJUSTADA': item.ajustado ? '🏷️' : '-',
       'USUÁRIO': user
     }));
     const agora = new Date();
@@ -1085,8 +1084,8 @@ async function copiarWhatsapp() {
     const user = getUserName() || 'almoxarife';
     const allItems = prepararItensParaExportacao();
     const linhas = allItems.map(item => {
-      const marca = item.ajustado ? '*' : '';
-      return `${item.sku}-${item.qty}${marca}-${item.endereco}-${user}`;
+      const marca = item.ajustado ? '🏷️' : '-';
+      return `${item.sku}-${item.qty}-${item.endereco}-${marca}-${user}`;
     });
 
     const texto = linhas.join('\n');
