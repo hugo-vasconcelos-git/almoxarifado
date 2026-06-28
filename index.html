@@ -508,7 +508,7 @@ function processarScanInteligente(raw) {
     // Se tem endereço aberto e é diferente, fecha e abre o novo instantaneamente
     if (fase === 'open') {
       const enderecoAnterior = `${ruaAtual}${String(pratAtual).padStart(2,'0')}`;
-      fecharEndereco();
+      fecharEndereco(false); // Não muda de aba ao fechar automaticamente
       // Abre novo endereço imediatamente (sem delay)
       abrirEndereco(rua, prat);
       showToast(`📍 ${enderecoAnterior} → ${rua}${String(prat).padStart(2,'0')} (${Object.keys(itens).length} itens)`, 'ok');
@@ -752,7 +752,7 @@ function abrirEndereco(rua, prat) {
   showToast(`📂 RUA ${rua} · Prat. ${prat} aberta`, 'ok');
 }
 
-function fecharEndereco() {
+function fecharEndereco(mudarAba = true) {
   if (Object.keys(itens).length === 0) {
     showToast('Adicione itens antes de fechar', 'warn');
     return;
@@ -768,7 +768,12 @@ function fecharEndereco() {
   atualizarLogBadge();
   renderLog();
   showToast(`✅ RUA ${ruaAtual} · Prat. ${pratAtual} salva!`, 'ok');
-  setTimeout(() => { cancelar(true); goTab(1); }, 900);
+
+  if (mudarAba) {
+    setTimeout(() => { cancelar(true); goTab(1); }, 900);
+  } else {
+    cancelar(true);
+  }
 }
 
 /* ══════════════════════════════════
