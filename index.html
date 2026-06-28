@@ -357,6 +357,7 @@ let lidos       = new Set(); // incrementais já lidos neste endereço
 let log         = [];
 let ruaSel      = '';
 let modoLeitor  = false; // modo contínuo de leitor USB
+let modoCameraContinua = false; // modo câmera contínua para itens
 let sb1Data     = {}; // SB1.json carregado em memória {SKU: {nome, um, ...}}
 
 
@@ -420,11 +421,15 @@ function abrirSelecionado() {
 }
 
 /* ══════════════════════════════════
-   CÂMERA — ZXing (só para itens)
+   CÂMERA — ZXing (modo contínuo)
 ══════════════════════════════════ */
 async function abrirCamera() {
-  document.getElementById('camLabel').textContent = 'Aponte para a etiqueta';
+  modoCameraContinua = true;
+  document.getElementById('camLabel').textContent = '📷 Aponte para a etiqueta (câmera contínua)';
   document.getElementById('cameraOverlay').classList.add('active');
+  const btnFechar = document.querySelector('.cam-close');
+  btnFechar.textContent = '✕ Sair do modo câmera';
+
   try {
     const hints = new Map();
     hints.set(ZXing.DecodeHintType.TRY_HARDER, true);
@@ -433,9 +438,13 @@ async function abrirCamera() {
       null,
       'video',
       (result, err) => {
-        if (result) {
-          fecharCamera();
-          processar(result.getText().trim().toUpperCase());
+        if (result && modoCameraContinua) {
+          const sku = result.getText().trim().toUpperCase();
+          processar(sku);
+          // Feedback visual: flash na câmera
+          const video = document.getElementById('video');
+          video.style.opacity = '0.3';
+          setTimeout(() => { video.style.opacity = '1'; }, 150);
         }
       }
     );
@@ -446,8 +455,11 @@ async function abrirCamera() {
 }
 
 function fecharCamera() {
+  modoCameraContinua = false;
   if (zxingReader) { zxingReader.reset(); zxingReader = null; }
   document.getElementById('cameraOverlay').classList.remove('active');
+  const btnFechar = document.querySelector('.cam-close');
+  btnFechar.textContent = '✕ Fechar';
 }
 
 /* ══════════════════════════════════
