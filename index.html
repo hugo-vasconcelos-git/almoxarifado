@@ -380,7 +380,9 @@ let zxingReader = null;
 let fase        = 'idle';
 let ruaAtual    = '';
 let pratAtual   = '';
-let itens       = {};
+let itens       = {}; // objeto com SKU como chave (mantido para compatibilidade)
+let itensArray  = []; // array para rastrear ordem e permitir duplicatas
+let nextItemId  = 0; // ID único para cada item
 let lidos       = new Set(); // incrementais já lidos neste endereço
 let itensEditados = new Set(); // rastrear itens com quantidade editada manualmente
 let log         = [];
@@ -651,8 +653,25 @@ function processarItem(raw) {
     lidos.add(incremental);
   }
 
-  // Registrar o item múltiplas vezes conforme multiplicador
-  for (let i = 0; i < multiplicador; i++) {
+  // Se há multiplicador, registrar múltiplas vezes
+  if (multiplicador > 1) {
+    // Extrair informações do SB1
+    const produtoSB1 = sb1Data[sku];
+    let nome = '';
+    let um = 'UN';
+    if (produtoSB1) {
+      nome = produtoSB1.b1_desc || produtoSB1.B1_DESC || '';
+      um = produtoSB1.b1_um || produtoSB1.B1_UM || 'UN';
+    }
+
+    // Registrar o item múltiplas vezes com SKUs únicos
+    for (let i = 0; i < multiplicador; i++) {
+      const skuUnico = `${sku}#${i+1}`;
+      adicionarItemUnico(skuUnico, sku, qty, nome, um);
+    }
+    showToast(`✅ ${sku} registrado ${multiplicador}x`, 'ok');
+  } else {
+    // Comportamento normal (sem multiplicador)
     adicionarItem(sku, qty);
   }
 
@@ -748,6 +767,30 @@ function adicionarItem(sku, qty) {
   }
 
   renderLista(sku);
+  atualizarStatus();
+}
+
+// Função para adicionar item permitindo múltiplos registros do mesmo SKU (para multiplicador)
+function adicionarItemUnico(skuUnico, skuOriginal, qty, nome, um) {
+  // Validar contra SB1
+  const produtoSB1 = sb1Data[skuOriginal];
+
+  if (Object.keys(sb1Data).length > 0 && !produtoSB1) {
+    showToast(`❌ SKU não cadastrado na SB1: ${skuOriginal}`, 'err');
+    return;
+  }
+
+  if (!nome) nome = '';
+  if (!um) um = 'UN';
+
+  if (produtoSB1) {
+    nome = produtoSB1.b1_desc || produtoSB1.B1_DESC || nome;
+    um = produtoSB1.b1_um || produtoSB1.B1_UM || um;
+  }
+
+  // Adicionar diretamente sem verificar duplicatas
+  itens[skuUnico] = { sku: skuOriginal, qty, um, nome };
+  renderLista();
   atualizarStatus();
 }
 
