@@ -947,9 +947,13 @@ function renderLista(highlightSku='') {
   arr.forEach(item=>{
     const row=document.createElement('div');
     let className = 'item-row' + (item.sku===highlightSku?' flash':'');
-    if (itensEditados.has(item.sku)) {
-      className += ' editado';
-    }
+    // Verificar edição pelo skuUnico (chave do objeto)
+    let skuParaVerificar = item.sku;
+    Object.keys(itens).forEach(chave => {
+      if (itens[chave].sku === item.sku && itensEditados.has(chave)) {
+        className += ' editado';
+      }
+    });
     row.className = className;
     row.id='row-'+item.sku;
     row.style.cursor='pointer';
