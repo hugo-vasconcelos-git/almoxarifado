@@ -341,6 +341,29 @@
   </div>
 </div>
 
+<!-- MODAL EDITAR ENDEREÇO -->
+<div id="modalEndereco" style="position:fixed;inset:0;background:rgba(0,0,0,.8);z-index:300;display:none;flex-direction:column;align-items:center;justify-content:center;padding:20px;">
+  <div style="background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:24px;width:100%;max-width:340px;display:flex;flex-direction:column;gap:16px;">
+    <div style="font-size:16px;font-weight:700;color:var(--text);">Editar endereço</div>
+    <div style="display:flex;gap:12px;align-items:flex-end;">
+      <div style="flex:1;">
+        <label style="font-size:10px;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);font-weight:600;display:block;margin-bottom:6px;">Rua</label>
+        <select id="editRua" style="width:100%;padding:10px;border:1px solid var(--border);border-radius:8px;font-family:var(--mono);font-size:16px;">
+          <option value="">—</option>
+        </select>
+      </div>
+      <div style="flex:1;">
+        <label style="font-size:10px;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);font-weight:600;display:block;margin-bottom:6px;">Prateleira</label>
+        <input type="number" id="editPrat" min="1" max="200" style="width:100%;padding:10px;border:1px solid var(--border);border-radius:8px;font-family:var(--mono);font-size:16px;text-align:center;">
+      </div>
+    </div>
+    <div style="display:flex;gap:10px;">
+      <button onclick="confirmarEditarEndereco()" style="flex:1;background:var(--green);border:none;border-radius:8px;color:#111;font-weight:700;padding:12px;cursor:pointer;">✓ Confirmar</button>
+      <button onclick="cancelarEditarEndereco()" style="flex:1;background:var(--border);border:none;border-radius:8px;color:var(--muted);font-weight:700;padding:12px;cursor:pointer;">✕ Cancelar</button>
+    </div>
+  </div>
+</div>
+
 <!-- ZXing para leitura de QR via câmera (melhor para etiquetas densas) -->
 <script src="https://unpkg.com/@zxing/library@0.19.1/umd/index.min.js"></script>
 
@@ -365,6 +388,7 @@ let ruaSel      = '';
 let modoLeitor  = false; // modo contínuo de leitor USB
 let modoCameraContinua = false; // modo câmera contínua para itens
 let sb1Data     = {}; // SB1.json carregado em memória {SKU: {nome, um, ...}}
+let multiplicador = 1; // multiplicador de quantidade (ex: "7x" = multiplicador 7)
 
 
 /* ══════════════════════════════════
@@ -400,6 +424,28 @@ window.addEventListener('DOMContentLoaded', () => {
   }
   sel.addEventListener('change', verificarBtnAbrir);
 
+  // Select de ruas para modal de editar endereço
+  const editRua = document.getElementById('editRua');
+  RUAS.forEach(r => {
+    const opt = document.createElement('option');
+    opt.value = r;
+    opt.textContent = r;
+    editRua.appendChild(opt);
+  });
+
+  // Listeners para campo de endereço
+  document.getElementById('inputEndereco').addEventListener('keydown', e => {
+    if (e.key==='Enter'){
+      e.preventDefault();
+      const codigo = document.getElementById('inputEndereco').value.trim().toUpperCase();
+      if (codigo) {
+        processarEndereco(codigo);
+        document.getElementById('inputEndereco').value = '';
+      }
+    }
+  });
+
+  // Listeners para campo de SKU
   document.getElementById('manualSku').addEventListener('keydown', e => {
     if (e.key==='Enter'){e.preventDefault();processarManual();}
   });
@@ -487,7 +533,24 @@ function processar(raw) {
 }
 
 function processarScanInteligente(raw) {
-  // Detectar se é endereço (A-O + 01-54) ou SKU
+  console.log('Processando:', raw, 'Length:', raw.length);
+  // Detectar multiplicador primeiro (ex: "7x", "3X")
+  const matchMultiplicador = raw.match(/^(\d+)x$/i);
+  console.log('Match multiplicador:', matchMultiplicador);
+  if (matchMultiplicador) {
+    multiplicador = parseInt(matchMultiplicador[1]);
+    console.log('Multiplicador ativado:', multiplicador);
+    showToast(`📊 Multiplicador ativado: ${multiplicador}x (registrará ${multiplicador} vezes)`, 'ok');
+    // Limpar campo
+    const input = document.getElementById('manualSku');
+    if (input) {
+      input.value = '';
+      input.focus();
+    }
+    return;
+  }
+
+  // Detectar se é endereço (A-O + 01-200) ou SKU
   const matchEndereco = raw.match(/^([A-O])(\d{1,2})$/);
 
   if (matchEndereco) {
@@ -560,6 +623,7 @@ function fazerBeep() {
 
 // Formato Audax: SKU-QUANTIDADE-INCREMENTAL  (ex: 21610954600101-123-136050)
 // Também aceita: SKU|QUANTIDADE ou só SKU
+// Multiplicador é detectado em processarScanInteligente()
 let _qtyTempo = { sku: null, incremental: null, editandoSku: null }; // armazenar dados temporários
 function processarItem(raw) {
   let sku, qty, incremental = null;
@@ -590,8 +654,13 @@ function processarItem(raw) {
     lidos.add(incremental);
   }
 
-  // Adiciona direto à lista (sem modal)
-  adicionarItem(sku, qty);
+  // Registrar o item múltiplas vezes conforme multiplicador
+  for (let i = 0; i < multiplicador; i++) {
+    adicionarItem(sku, qty);
+  }
+
+  // Reseta multiplicador após uso
+  multiplicador = 1;
 }
 
 function abrirModalQty(sku, qty) {
@@ -742,7 +811,7 @@ function processarEndereco(codigo) {
 }
 
 function abrirEndereco(rua, prat) {
-  fase = 'open'; ruaAtual = rua; pratAtual = prat; itens = {}; lidos = new Set(); itensEditados = new Set();
+  fase = 'open'; ruaAtual = rua; pratAtual = prat; itens = {}; lidos = new Set(); itensEditados = new Set(); multiplicador = 1;
   document.getElementById('seletorEndereco').style.display = 'none';
   document.getElementById('secaoItens').style.display      = 'flex';
   atualizarStatus();
@@ -781,7 +850,7 @@ function fecharEndereco(mudarAba = true) {
    RENDER
 ══════════════════════════════════ */
 function cancelar(silencioso=false) {
-  fase = 'idle'; ruaAtual = ''; pratAtual = ''; itens = {}; lidos = new Set(); itensEditados = new Set(); ruaSel = '';
+  fase = 'idle'; ruaAtual = ''; pratAtual = ''; itens = {}; lidos = new Set(); itensEditados = new Set(); ruaSel = ''; multiplicador = 1;
   document.querySelectorAll('.rua-cel').forEach(c=>c.classList.remove('sel'));
   document.getElementById('selPrateleira').value = '';
   document.getElementById('btnAbrir').disabled = true;
@@ -940,8 +1009,8 @@ function renderLog() {
       </div>
     `).join('');
     el.innerHTML=`
-      <div class="log-head-row">
-        <span class="log-rua">RUA ${entry.rua} · Prat. ${entry.prat}</span>
+      <div class="log-head-row" style="cursor:pointer;" onclick="editarEndereco(${logIdx})">
+        <span class="log-rua" style="text-decoration:underline;">RUA ${entry.rua} · Prat. ${entry.prat}</span>
         <span class="log-ts">${entry.ts}</span>
       </div>
       <div class="log-items-wrap">${itensHtml}</div>
@@ -985,6 +1054,53 @@ function removerItemLog(logIdx, itemIdx) {
   renderLog();
   atualizarLogBadge();
   showToast(`✓ Item removido`, 'ok');
+}
+
+function editarEndereco(logIdx) {
+  const entry = log[logIdx];
+  if (!entry) return;
+
+  // Preencher modal com valores atuais
+  document.getElementById('editRua').value = entry.rua;
+  document.getElementById('editPrat').value = entry.prat;
+
+  // Armazenar contexto
+  window._editarEnderecoContext = { logIdx };
+
+  // Abrir modal
+  document.getElementById('modalEndereco').style.display = 'flex';
+
+  // Focus no input de prateleira
+  setTimeout(() => document.getElementById('editPrat').focus(), 100);
+}
+
+function confirmarEditarEndereco() {
+  const { logIdx } = window._editarEnderecoContext;
+  const novaRua = document.getElementById('editRua').value;
+  const novaPrat = parseInt(document.getElementById('editPrat').value);
+
+  if (!novaRua || !novaPrat || novaPrat < 1 || novaPrat > 200) {
+    showToast('❌ Preencha rua e prateleira válidas', 'err');
+    return;
+  }
+
+  const entry = log[logIdx];
+  const enderecoAnterior = `${entry.rua}${String(entry.prat).padStart(2,'0')}`;
+  const novoEndereco = `${novaRua}${String(novaPrat).padStart(2,'0')}`;
+
+  entry.rua = novaRua;
+  entry.prat = novaPrat;
+
+  document.getElementById('modalEndereco').style.display = 'none';
+  window._editarEnderecoContext = null;
+
+  renderLog();
+  showToast(`✏️ ${enderecoAnterior} → ${novoEndereco}`, 'ok');
+}
+
+function cancelarEditarEndereco() {
+  document.getElementById('modalEndereco').style.display = 'none';
+  window._editarEnderecoContext = null;
 }
 
 /* ══════════════════════════════════

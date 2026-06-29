@@ -79,10 +79,10 @@
       gap: 8px;
     }
     .etiqueta.pallete {
-      height: 6.8cm;
-      width: 9.5cm;
-      padding: 6px;
-      gap: 6px;
+      height: 8.5cm;
+      width: 11cm;
+      padding: 8px;
+      gap: 8px;
     }
     .etiqueta-esquerda, .etiqueta-direita {
       display: flex;
@@ -100,7 +100,7 @@
       line-height: 1;
     }
     .etiqueta.pallete h2 {
-      font-size: 24px;
+      font-size: 45px;
     }
     .etiqueta p {
       font-size: 14px;
@@ -110,7 +110,7 @@
       font-weight: 600;
     }
     .etiqueta.pallete p {
-      font-size: 12px;
+      font-size: 45px;
     }
     .qr-code {
       display: flex;
@@ -241,7 +241,7 @@ function gerarEtiquetas() {
   let count = 0;
 
   const tipo = document.getElementById('tipoEtiqueta').value;
-  const qrSize = tipo === 'pallete' ? 100 : 75;
+  const qrSize = tipo === 'pallete' ? 175 : 75;
 
   for (let i = idxRuaIni; i <= idxRuaFim; i++) {
     const rua = RUAS[i];
