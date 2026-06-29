@@ -1,0 +1,462 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Etiquetas de Componentes - Almoxarifado</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jsbarcode/3.11.5/JsBarcode.all.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: Arial, sans-serif;
+      background: #f5f5f5;
+      padding: 20px;
+    }
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+    .header {
+      background: white;
+      padding: 20px;
+      border-radius: 8px;
+      margin-bottom: 20px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    h1 { color: #333; margin-bottom: 10px; }
+    .form-section {
+      background: white;
+      padding: 20px;
+      border-radius: 8px;
+      margin-bottom: 20px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    .form-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 15px;
+      margin-bottom: 15px;
+    }
+    label {
+      display: block;
+      font-weight: bold;
+      margin-bottom: 5px;
+      color: #555;
+      font-size: 13px;
+    }
+    input, select {
+      width: 100%;
+      padding: 10px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      font-size: 14px;
+    }
+    input:focus, select:focus {
+      outline: none;
+      border-color: #3b6ef6;
+      box-shadow: 0 0 0 2px rgba(59,110,246,0.1);
+    }
+    button {
+      background: #3b6ef6;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-weight: bold;
+      font-size: 14px;
+      transition: background 0.2s;
+    }
+    button:hover { background: #2653d4; }
+    button:disabled { background: #ccc; cursor: not-allowed; }
+    .button-group {
+      display: flex;
+      gap: 10px;
+      margin-top: 15px;
+    }
+    .button-group button { flex: 1; }
+
+    /* ETIQUETA PREVIEW */
+    .preview-section {
+      background: white;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    .preview-box {
+      width: 100%;
+      max-width: 400px;
+      margin: 0 auto;
+      border: 2px dashed #ddd;
+      padding: 20px;
+      background: #fafafa;
+      border-radius: 8px;
+      text-align: center;
+    }
+    .etiqueta {
+      background: white;
+      border: 1px solid #333;
+      padding: 15px;
+      font-family: Arial, sans-serif;
+      font-size: 12px;
+      text-align: left;
+      display: none;
+    }
+    .etiqueta.show {
+      display: block;
+    }
+    .etiqueta-header {
+      text-align: center;
+      margin-bottom: 10px;
+      padding-bottom: 10px;
+      border-bottom: 2px solid #333;
+      font-weight: bold;
+    }
+    .etiqueta-row {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 5px;
+    }
+    .etiqueta-label {
+      font-weight: bold;
+    }
+    .etiqueta-value {
+      text-align: right;
+    }
+    .qr-barcode-container {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin: 15px 0;
+      gap: 10px;
+    }
+    #qrCode {
+      flex-shrink: 0;
+    }
+    #barcode {
+      height: 100px;
+      display: flex;
+      align-items: center;
+    }
+    .message {
+      padding: 10px;
+      border-radius: 4px;
+      margin-bottom: 15px;
+      display: none;
+    }
+    .message.success {
+      background: #d4edda;
+      color: #155724;
+      border: 1px solid #c3e6cb;
+      display: block;
+    }
+    .message.error {
+      background: #f8d7da;
+      color: #721c24;
+      border: 1px solid #f5c6cb;
+      display: block;
+    }
+    .autocomplete-list {
+      border: 1px solid #ddd;
+      border-top: none;
+      border-radius: 0 0 4px 4px;
+      max-height: 200px;
+      overflow-y: auto;
+      display: none;
+      position: absolute;
+      width: 100%;
+      background: white;
+      z-index: 1000;
+    }
+    .autocomplete-list.show {
+      display: block;
+    }
+    .autocomplete-item {
+      padding: 8px 10px;
+      cursor: pointer;
+      border-bottom: 1px solid #eee;
+    }
+    .autocomplete-item:hover {
+      background: #f5f5f5;
+    }
+    .sku-wrapper {
+      position: relative;
+    }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <div class="header">
+    <h1>🏷️ Etiquetas de Componentes</h1>
+    <p>Gere etiquetas de recebimento/chegada de material</p>
+  </div>
+
+  <div class="form-section">
+    <div id="message" class="message"></div>
+
+    <div class="form-grid">
+      <div class="sku-wrapper">
+        <label for="skuInput">SKU do Produto *</label>
+        <input type="text" id="skuInput" placeholder="Digite o SKU" autocomplete="off">
+        <div id="skuList" class="autocomplete-list"></div>
+      </div>
+
+      <div>
+        <label for="descricao">Descrição</label>
+        <input type="text" id="descricao" placeholder="Descrição (auto)" disabled>
+      </div>
+
+      <div>
+        <label for="um">UM</label>
+        <input type="text" id="um" placeholder="Unidade (auto)" disabled>
+      </div>
+
+      <div>
+        <label for="fornecedor">Fornecedor *</label>
+        <select id="fornecedor" required>
+          <option value="">Selecionar...</option>
+        </select>
+      </div>
+
+      <div>
+        <label for="quantidade">Quantidade *</label>
+        <input type="number" id="quantidade" placeholder="Ex: 12" min="1" required>
+      </div>
+
+      <div>
+        <label for="data">Data</label>
+        <input type="date" id="data">
+      </div>
+
+      <div>
+        <label for="nf">NF (Nota Fiscal)</label>
+        <input type="text" id="nf" placeholder="Ex: 6115">
+      </div>
+    </div>
+
+    <div class="button-group">
+      <button onclick="gerarEtiqueta()">🏷️ Gerar Etiqueta</button>
+      <button onclick="imprimirEtiqueta()" id="btnImprimir" disabled>🖨️ Imprimir</button>
+      <button onclick="limparFormulario()" style="background: #6c757d;">🗑️ Limpar</button>
+    </div>
+  </div>
+
+  <div class="preview-section">
+    <h3>Preview da Etiqueta</h3>
+    <div class="preview-box">
+      <div id="etiqueta" class="etiqueta">
+        <div class="etiqueta-header">AUDAX ELECTRONICS</div>
+
+        <div class="qr-barcode-container">
+          <div id="qrCode"></div>
+          <svg id="barcode"></svg>
+        </div>
+
+        <div class="etiqueta-row">
+          <span class="etiqueta-label">SKU:</span>
+          <span class="etiqueta-value" id="etiq-sku"></span>
+        </div>
+        <div style="font-size: 11px; margin-bottom: 8px;" id="etiq-desc"></div>
+
+        <div style="border-top: 1px solid #999; padding-top: 8px; margin-top: 8px;">
+          <div class="etiqueta-row">
+            <span class="etiqueta-label">Qtde:</span>
+            <span class="etiqueta-value" id="etiq-qtde"></span>
+          </div>
+          <div class="etiqueta-row">
+            <span class="etiqueta-label">Form:</span>
+            <span class="etiqueta-value" id="etiq-form"></span>
+          </div>
+          <div class="etiqueta-row">
+            <span class="etiqueta-label">Data:</span>
+            <span class="etiqueta-value" id="etiq-data"></span>
+          </div>
+          <div class="etiqueta-row">
+            <span class="etiqueta-label">NF:</span>
+            <span class="etiqueta-value" id="etiq-nf"></span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+let sb1Data = {};
+let sa1Data = {};
+
+// Carregar dados ao abrir página
+window.addEventListener('DOMContentLoaded', () => {
+  carregarDados();
+  document.getElementById('data').valueAsDate = new Date();
+});
+
+// Carregar SB1 e SA1
+function carregarDados() {
+  // Carregar SB1
+  fetch('SB1_mobile.json')
+    .then(r => r.json())
+    .then(d => {
+      if (d.data) {
+        sb1Data = JSON.parse(atob(d.data));
+        console.log('SB1 carregado:', Object.keys(sb1Data).length);
+      }
+    })
+    .catch(e => console.error('Erro ao carregar SB1:', e));
+
+  // Carregar SA1 (fornecedores)
+  fetch('SA1_mobile.json')
+    .then(r => r.json())
+    .then(d => {
+      if (d.data) {
+        sa1Data = JSON.parse(atob(d.data));
+        preencherFornecedores();
+        console.log('SA1 carregado:', Object.keys(sa1Data).length);
+      }
+    })
+    .catch(e => console.error('Erro ao carregar SA1:', e));
+}
+
+// Preencher dropdown de fornecedores
+function preencherFornecedores() {
+  const select = document.getElementById('fornecedor');
+  const option0 = select.querySelector('option');
+
+  Object.keys(sa1Data).sort().forEach(chave => {
+    const fornecedor = sa1Data[chave];
+    const opt = document.createElement('option');
+    opt.value = fornecedor.a1_nome || fornecedor.nome || chave;
+    opt.textContent = fornecedor.a1_nome || fornecedor.nome || chave;
+    select.appendChild(opt);
+  });
+}
+
+// Autocomplete para SKU
+document.getElementById('skuInput').addEventListener('input', (e) => {
+  const valor = e.target.value.toUpperCase().trim();
+  const lista = document.getElementById('skuList');
+
+  if (valor.length < 2) {
+    lista.classList.remove('show');
+    return;
+  }
+
+  const matches = Object.keys(sb1Data)
+    .filter(sku => sku.includes(valor))
+    .slice(0, 10);
+
+  if (matches.length === 0) {
+    lista.classList.remove('show');
+    return;
+  }
+
+  lista.innerHTML = matches.map(sku =>
+    `<div class="autocomplete-item" onclick="selecionarSKU('${sku}')">${sku}</div>`
+  ).join('');
+  lista.classList.add('show');
+});
+
+// Selecionar SKU e preencher dados
+function selecionarSKU(sku) {
+  document.getElementById('skuInput').value = sku;
+  document.getElementById('skuList').classList.remove('show');
+
+  const produto = sb1Data[sku];
+  if (produto) {
+    document.getElementById('descricao').value = produto.b1_desc || '';
+    document.getElementById('um').value = produto.b1_um || '';
+  }
+}
+
+// Gerar etiqueta
+function gerarEtiqueta() {
+  const sku = document.getElementById('skuInput').value.trim();
+  const descricao = document.getElementById('descricao').value;
+  const um = document.getElementById('um').value;
+  const fornecedor = document.getElementById('fornecedor').value;
+  const quantidade = document.getElementById('quantidade').value;
+  const data = document.getElementById('data').value;
+  const nf = document.getElementById('nf').value;
+
+  // Validações
+  if (!sku) return showMessage('SKU é obrigatório', 'error');
+  if (!fornecedor) return showMessage('Fornecedor é obrigatório', 'error');
+  if (!quantidade) return showMessage('Quantidade é obrigatória', 'error');
+
+  // Preencher etiqueta
+  document.getElementById('etiq-sku').textContent = sku;
+  document.getElementById('etiq-desc').textContent = `Desc: ${descricao}`;
+  document.getElementById('etiq-qtde').textContent = `${quantidade} ${um}`;
+  document.getElementById('etiq-form').textContent = fornecedor;
+  document.getElementById('etiq-data').textContent = data ? new Date(data).toLocaleDateString('pt-BR') : '';
+  document.getElementById('etiq-nf').textContent = nf || '—';
+
+  // Gerar QR Code
+  document.getElementById('qrCode').innerHTML = '';
+  new QRCode(document.getElementById('qrCode'), {
+    text: sku,
+    width: 80,
+    height: 80,
+    colorDark: '#000000',
+    colorLight: '#ffffff',
+    correctLevel: QRCode.CorrectLevel.H
+  });
+
+  // Gerar código de barras
+  JsBarcode("#barcode", sku, {
+    format: "CODE128",
+    width: 2,
+    height: 100,
+    displayValue: false
+  });
+
+  // Mostrar etiqueta
+  document.getElementById('etiqueta').classList.add('show');
+  document.getElementById('btnImprimir').disabled = false;
+  showMessage('Etiqueta gerada com sucesso!', 'success');
+}
+
+// Imprimir etiqueta
+function imprimirEtiqueta() {
+  window.print();
+}
+
+// Limpar formulário
+function limparFormulario() {
+  document.getElementById('skuInput').value = '';
+  document.getElementById('descricao').value = '';
+  document.getElementById('um').value = '';
+  document.getElementById('fornecedor').value = '';
+  document.getElementById('quantidade').value = '';
+  document.getElementById('nf').value = '';
+  document.getElementById('etiqueta').classList.remove('show');
+  document.getElementById('btnImprimir').disabled = true;
+  document.getElementById('skuList').classList.remove('show');
+  document.getElementById('skuInput').focus();
+}
+
+// Mostrar mensagem
+function showMessage(texto, tipo) {
+  const msg = document.getElementById('message');
+  msg.textContent = texto;
+  msg.className = `message ${tipo}`;
+  setTimeout(() => msg.className = 'message', 3000);
+}
+
+// CSS para impressão
+window.addEventListener('beforeprint', () => {
+  document.body.style.background = 'white';
+  document.querySelector('.container').style.maxWidth = 'none';
+  document.querySelector('.form-section').style.display = 'none';
+  document.querySelector('.header').style.display = 'none';
+  document.querySelector('.preview-section').style.background = 'white';
+  document.querySelector('.preview-section h3').style.display = 'none';
+  document.querySelector('.preview-box').style.border = 'none';
+  document.querySelector('.preview-box').style.maxWidth = 'none';
+});
+</script>
+
+</body>
+</html>
