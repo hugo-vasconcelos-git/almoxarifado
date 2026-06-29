@@ -533,13 +533,10 @@ function processar(raw) {
 }
 
 function processarScanInteligente(raw) {
-  console.log('Processando:', raw, 'Length:', raw.length);
   // Detectar multiplicador primeiro (ex: "7x", "3X")
   const matchMultiplicador = raw.match(/^(\d+)x$/i);
-  console.log('Match multiplicador:', matchMultiplicador);
   if (matchMultiplicador) {
     multiplicador = parseInt(matchMultiplicador[1]);
-    console.log('Multiplicador ativado:', multiplicador);
     showToast(`📊 Multiplicador ativado: ${multiplicador}x (registrará ${multiplicador} vezes)`, 'ok');
     // Limpar campo
     const input = document.getElementById('manualSku');
