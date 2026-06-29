@@ -873,7 +873,7 @@ function fecharEndereco(mudarAba = true) {
     prat: pratAtual,
     ts:   agora(),
     tsOrdenavel: agoraOrdenavel(),
-    itens: Object.values(itens).map(i=>({...i, ajustado: itensEditados.has(i.sku)}))
+    itens: Object.values(itens).map(i=>({...i, ajustado: itensEditados.has(i.skuUnico || i.sku)}))
   });
   atualizarLogBadge();
   renderLog();
