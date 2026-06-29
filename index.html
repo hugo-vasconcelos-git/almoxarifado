@@ -1054,10 +1054,13 @@ function renderLog() {
     const logIdx = log.length - 1 - idx; // Índice real no array
     const el=document.createElement('div');
     el.className='log-entry ok';
-    const itensHtml=entry.itens.map((i, itemIdx)=>`
-      <div style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--border);font-size:11px;">
+    const itensHtml=entry.itens.map((i, itemIdx)=>{
+      const bgStyle = i.ajustado ? 'background:color-mix(in srgb,var(--danger) 15%,transparent);' : '';
+      const skuColor = i.ajustado ? 'color:var(--danger);font-weight:700;' : 'color:var(--text);';
+      return `
+      <div style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--border);font-size:11px;${bgStyle}">
         <div style="flex:1;">
-          <div style="font-family:var(--mono);font-weight:600;color:var(--text);">${i.sku}</div>
+          <div style="font-family:var(--mono);font-weight:600;${skuColor}">${i.sku}</div>
           ${i.nome ? `<div style="color:var(--muted);">${i.nome}</div>` : ''}
           <div style="display:flex;justify-content:space-between;color:var(--muted);">
             <span onclick="editarItemLog(${logIdx}, ${itemIdx})" style="cursor:pointer;text-decoration:underline;">${i.qty} ${i.um} ${i.ajustado ? '🏷️' : ''}</span>
@@ -1065,7 +1068,8 @@ function renderLog() {
         </div>
         <button onclick="removerItemLog(${logIdx}, ${itemIdx})" style="background:none;border:none;color:var(--danger);cursor:pointer;font-size:16px;padding:0;">✕</button>
       </div>
-    `).join('');
+    `;
+    }).join('');
     el.innerHTML=`
       <div class="log-head-row" style="cursor:pointer;" onclick="editarEndereco(${logIdx})">
         <span class="log-rua" style="text-decoration:underline;">RUA ${entry.rua} · Prat. ${entry.prat}</span>
