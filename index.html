@@ -789,7 +789,7 @@ function adicionarItemUnico(skuUnico, skuOriginal, qty, nome, um) {
   }
 
   // Adicionar diretamente sem verificar duplicatas
-  itens[skuUnico] = { sku: skuOriginal, qty, um, nome };
+  itens[skuUnico] = { sku: skuOriginal, skuUnico, qty, um, nome };
   renderLista();
   atualizarStatus();
 }
@@ -947,13 +947,11 @@ function renderLista(highlightSku='') {
   arr.forEach(item=>{
     const row=document.createElement('div');
     let className = 'item-row' + (item.sku===highlightSku?' flash':'');
-    // Verificar edição pelo skuUnico (chave do objeto)
-    let skuParaVerificar = item.sku;
-    Object.keys(itens).forEach(chave => {
-      if (itens[chave].sku === item.sku && itensEditados.has(chave)) {
-        className += ' editado';
-      }
-    });
+    // Verificar edição pelo skuUnico se existir, ou pelo sku
+    const skuParaVerificar = item.skuUnico || item.sku;
+    if (itensEditados.has(skuParaVerificar)) {
+      className += ' editado';
+    }
     row.className = className;
     row.id='row-'+item.sku;
     row.style.cursor='pointer';
@@ -980,7 +978,21 @@ function remover(sku) {
 }
 
 function editarQtyItem(sku) {
-  const item = itens[sku];
+  // Procurar o item (pode ser skuUnico ou sku original)
+  let item = itens[sku];
+  let skuParaRastrear = sku;
+
+  if (!item) {
+    // Procurar entre todos os itens pelo sku original
+    for (let chave in itens) {
+      if (itens[chave].sku === sku) {
+        item = itens[chave];
+        skuParaRastrear = chave;
+        break;
+      }
+    }
+  }
+
   if (!item) return;
 
   // Reutiliza modal de quantidade para edição
@@ -994,7 +1006,7 @@ function editarQtyItem(sku) {
   input.select();
 
   // Armazena que é edição (não leitura nova)
-  _qtyTempo.editandoSku = sku;
+  _qtyTempo.editandoSku = skuParaRastrear;
 }
 
 // Modifica confirmarQty para também funcionar em edição
