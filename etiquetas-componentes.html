@@ -201,8 +201,8 @@
     .etiqueta-qr img,
     .etiqueta-qr canvas,
     .etiqueta-qr svg {
-      width: 18mm !important;
-      height: 18mm !important;
+      width: 19mm !important;
+      height: 19mm !important;
     }
 
     .stats {
@@ -589,8 +589,8 @@ function renderizarEtiquetas() {
     setTimeout(() => {
       new QRCode(document.getElementById(qrId), {
         text: etiqueta.qrText,
-        width: 60,
-        height: 60,
+        width: 100,
+        height: 100,
         colorDark: '#000000',
         colorLight: '#ffffff',
         correctLevel: QRCode.CorrectLevel.H
