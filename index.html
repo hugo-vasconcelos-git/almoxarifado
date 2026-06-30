@@ -833,22 +833,21 @@ function processarLeituraComponenteOuEndereco() {
 
   if (!codigo) return;
 
-  // Verificar se é endereço (A01, SB01, SD1, etc)
-  const enderecoMatch = codigo.match(/^([A-Z]|SB|SD)(\d{1,3}|[A-B])?$/i);
-  const isEndereco = enderecoMatch && (
-    // A-Z com 1-3 dígitos
-    (codigo.match(/^[A-Z]\d{1,3}$/)) ||
-    // SB com 1-2 dígitos ou A-B
-    (codigo.match(/^SB(\d{1,2}|[A-B])$/)) ||
-    // SD com 1 dígito (1-4)
-    (codigo.match(/^SD[1-4]$/))
+  // Detectar se é ENDEREÇO (padrão muito específico):
+  // A-Z + 1-3 dígitos (ex: A01, Z200)
+  // SB + números ou A/B (ex: SB01, SB19, SBA, SBB)
+  // SD + 1 dígito (ex: SD1, SD4)
+  const isEndereco = (
+    /^[A-Z]\d{1,3}$/.test(codigo) ||      // A-Z com 1-3 dígitos
+    /^SB[0-9A-B]+$/.test(codigo) ||       // SB com números ou A-B
+    /^SD[1-4]$/.test(codigo)              // SD com 1 dígito (1-4)
   );
 
   if (isEndereco) {
     // É um endereço - processar como tal
     processarEndereco(codigo);
   } else {
-    // É um componente/SKU
+    // É um componente/SKU - processar como item
     processarManual();
   }
 
