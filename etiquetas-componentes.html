@@ -154,63 +154,53 @@
       width: 50mm;
       height: 20mm;
       border: 1px solid #000;
-      padding: 2mm;
+      padding: 1.5mm;
       font-family: Arial, sans-serif;
-      font-size: 7px;
       display: flex;
-      flex-direction: column;
-      justify-content: space-between;
+      gap: 1.5mm;
       background: white;
       position: relative;
     }
 
-    .etiqueta-header {
-      border-bottom: 0.5px solid #000;
-      padding-bottom: 1mm;
-      margin-bottom: 1mm;
-      font-weight: bold;
-    }
-
-    .etiqueta-sku {
-      font-size: 8px;
-      font-weight: bold;
-    }
-
-    .etiqueta-info {
-      display: flex;
-      gap: 2mm;
-      flex: 1;
-    }
-
-    .etiqueta-dados {
+    .etiqueta-esquerda {
       flex: 1;
       display: flex;
       flex-direction: column;
-      gap: 0.5mm;
-      font-size: 6px;
+      justify-content: space-between;
+      font-size: 7px;
+      line-height: 1.1;
+    }
+
+    .etiqueta-sku {
+      font-size: 7px;
+      font-weight: bold;
+      margin-bottom: 1mm;
+    }
+
+    .etiqueta-quantidade {
+      font-size: 14px;
+      font-weight: bold;
       line-height: 1;
+      margin-bottom: 1mm;
     }
 
-    .etiqueta-campo {
-      display: flex;
-      gap: 1mm;
-    }
-
-    .etiqueta-campo strong {
-      font-size: 5px;
-      color: #666;
-      min-width: 14mm;
+    .etiqueta-localizacao {
+      font-size: 7px;
+      font-weight: bold;
     }
 
     .etiqueta-qr {
       flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
     }
 
     .etiqueta-qr img,
     .etiqueta-qr canvas,
     .etiqueta-qr svg {
-      width: 16mm !important;
-      height: 16mm !important;
+      width: 18mm !important;
+      height: 18mm !important;
     }
 
     .stats {
@@ -448,22 +438,12 @@ function renderizarEtiquetas() {
     el.className = 'etiqueta';
 
     el.innerHTML = `
-      <div class="etiqueta-header">
+      <div class="etiqueta-esquerda">
         <div class="etiqueta-sku">${etiqueta.sku}</div>
+        <div class="etiqueta-quantidade">${etiqueta.quantidade} ${etiqueta.um}</div>
+        <div class="etiqueta-localizacao">${etiqueta.localizacao}</div>
       </div>
-      <div class="etiqueta-info">
-        <div class="etiqueta-dados">
-          <div class="etiqueta-campo">
-            <strong>Qtde:</strong>
-            <span>${etiqueta.quantidade} ${etiqueta.um}</span>
-          </div>
-          <div class="etiqueta-campo">
-            <strong>Local:</strong>
-            <span>${etiqueta.localizacao}</span>
-          </div>
-        </div>
-        <div class="etiqueta-qr" id="${qrId}"></div>
-      </div>
+      <div class="etiqueta-qr" id="${qrId}"></div>
     `;
 
     el.addEventListener('click', () => removerEtiqueta(idx));
