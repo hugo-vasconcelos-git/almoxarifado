@@ -538,8 +538,8 @@ function adicionarEtiqueta() {
   const produto = sb1Data[sku] || {};
   const um = produto.um || 'PC';
 
-  // Criar QR code: SKU-quantidade-numero (com 3 dígitos: 001, 002...)
-  const qrText = `${sku}-${quantidade}-${String(numeroSequencial).padStart(3, '0')}`;
+  // Criar QR code: SKU-quantidade-numero (com 4 dígitos: 0001, 0002...)
+  const qrText = `${sku}-${quantidade}-${String(numeroSequencial).padStart(4, '0')}`;
 
   etiquetas.push({
     sku,
@@ -722,7 +722,7 @@ function importarExcel() {
       const produto = sb1Data[sku] || {};
       const um = produto.um || 'PC';
 
-      const qrText = `${sku}-${qtde}-${String(numeroSequencial).padStart(3, '0')}`;
+      const qrText = `${sku}-${qtde}-${String(numeroSequencial).padStart(4, '0')}`;
 
       etiquetas.push({
         sku,
