@@ -1434,7 +1434,11 @@ function carregarSB1(event) {
     try {
       // LIMPAR dados antigos primeiro
       sb1Data = {};
-      localStorage.removeItem('almoxSB1');
+      try {
+        localStorage.removeItem('almoxSB1');
+      } catch (e) {
+        console.warn('⚠️ Não foi possível limpar SB1 do localStorage');
+      }
 
       let conteudo = e.target.result;
       let json;
@@ -1531,14 +1535,18 @@ function atualizarBadgeSB1() {
 }
 
 function carregarSB1DoLocal() {
-  const stored = localStorage.getItem('almoxSB1');
-  if (stored) {
-    try {
-      sb1Data = JSON.parse(stored);
-      console.log(`SB1 carregado: ${Object.keys(sb1Data).length} produtos`);
-    } catch (err) {
-      console.error('Erro ao carregar SB1 do localStorage:', err);
+  try {
+    const stored = localStorage.getItem('almoxSB1');
+    if (stored) {
+      try {
+        sb1Data = JSON.parse(stored);
+        console.log(`SB1 carregado: ${Object.keys(sb1Data).length} produtos`);
+      } catch (err) {
+        console.error('Erro ao carregar SB1 do localStorage:', err);
+      }
     }
+  } catch (e) {
+    console.warn('⚠️ localStorage indisponível (modo privado ou bloqueado)', e);
   }
 }
 
@@ -1552,7 +1560,13 @@ function mostrarModalSB1() {
 let usuarioAtual = null;
 
 function getUserName() {
-  if (!usuarioAtual) usuarioAtual = localStorage.getItem('almoxUsuario');
+  if (!usuarioAtual) {
+    try {
+      usuarioAtual = localStorage.getItem('almoxUsuario');
+    } catch (e) {
+      console.warn('⚠️ Não foi possível obter usuário do localStorage');
+    }
+  }
   return usuarioAtual;
 }
 
@@ -1566,7 +1580,11 @@ function salvarUsuario() {
     return;
   }
 
-  localStorage.setItem('almoxUsuario', user);
+  try {
+    localStorage.setItem('almoxUsuario', user);
+  } catch (e) {
+    console.warn('⚠️ Não foi possível salvar usuário no localStorage');
+  }
   usuarioAtual = user;
   document.getElementById('modalLogin').classList.remove('active');
   showToast(`✓ Usuário ${user} salvo!`, 'ok');
