@@ -6,6 +6,7 @@
   <title>Etiquetas de Componentes - Almoxarifado</title>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jsbarcode/3.11.5/JsBarcode.all.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
@@ -187,6 +188,35 @@
 </head>
 <body>
 
+<!-- MODAL IMPORTAR EXCEL -->
+<div id="modalImportarExcel" style="position:fixed;inset:0;background:rgba(0,0,0,0.8);z-index:1000;display:none;flex-direction:column;align-items:center;justify-content:center;padding:20px;">
+  <div style="background:white;border-radius:16px;padding:28px;width:100%;max-width:500px;display:flex;flex-direction:column;gap:20px;">
+    <div style="font-size:20px;font-weight:700;color:#333;">📊 Importar Excel</div>
+    <div style="font-size:13px;color:#666;line-height:1.6;">
+      Selecione um arquivo Excel (.xlsx) com a coluna "QTDE AJUSTADA" contendo 🏷️ para filtrar os itens que receberão etiqueta:
+    </div>
+
+    <div style="background:#f5f5f5;border:2px dashed #3b6ef6;border-radius:8px;padding:20px;text-align:center;cursor:pointer;" onclick="document.getElementById('excelFileInput').click()" id="excelDropZone">
+      <div style="font-size:28px;margin-bottom:8px;">📁</div>
+      <div style="font-weight:600;color:#333;">Clique para selecionar arquivo</div>
+      <div style="font-size:11px;color:#999;margin-top:8px;">ou arraste aqui</div>
+    </div>
+    <input type="file" id="excelFileInput" accept=".xlsx" style="display:none;" onchange="carregarExcel(event)">
+
+    <div id="excelStatus" style="font-size:12px;color:#666;text-align:center;"></div>
+
+    <div id="excelPreview" style="max-height:300px;overflow-y:auto;border:1px solid #ddd;border-radius:8px;padding:12px;background:#f9f9f9;display:none;">
+      <div style="font-size:12px;font-weight:600;color:#555;margin-bottom:8px;">Itens encontrados com 🏷️:</div>
+      <div id="excelPreviewList" style="font-size:11px;"></div>
+    </div>
+
+    <div style="display:flex;gap:10px;">
+      <button onclick="fecharModalExcel()" style="flex:1;background:#ccc;color:white;border:none;padding:10px;border-radius:4px;font-weight:bold;">Cancelar</button>
+      <button id="gerarEtiquetasExcelBtn" onclick="gerarEtiquetasEmLote()" disabled style="flex:1;background:#ccc;cursor:not-allowed;color:white;border:none;padding:10px;border-radius:4px;font-weight:bold;">Gerar Etiquetas</button>
+    </div>
+  </div>
+</div>
+
 <!-- MODAL CARREGAMENTO DE DADOS -->
 <div id="modalDados" style="position:fixed;inset:0;background:rgba(0,0,0,0.8);z-index:1000;display:none;flex-direction:column;align-items:center;justify-content:center;padding:20px;">
   <div style="background:white;border-radius:16px;padding:28px;width:100%;max-width:500px;display:flex;flex-direction:column;gap:20px;">
@@ -277,6 +307,7 @@
       <button onclick="imprimirEtiqueta()" id="btnImprimir" disabled>🖨️ Imprimir</button>
       <button onclick="limparFormulario()" style="background: #6c757d;">🗑️ Limpar</button>
       <button onclick="abrirModalDados()" style="background: #f5a623;">📂 Carregar Dados</button>
+      <button onclick="abrirModalImportarExcel()" style="background: #27ae60;">📊 Importar Excel</button>
     </div>
   </div>
 
@@ -286,11 +317,8 @@
       <div id="etiqueta" class="etiqueta">
         <div class="etiqueta-header">AUDAX ELECTRONICS</div>
 
-        <div class="qr-barcode-container">
-          <div id="qrCode"></div>
-          <div id="logoContainer" style="flex-shrink: 0; display: flex; align-items: center; justify-content: center; width: 100px; height: 100px;">
-            <img id="logoAudax" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 80'%3E%3Ctext x='10' y='60' font-size='48' font-weight='bold' font-family='Arial' fill='%23000'%3EAUDAX%3C/text%3E%3C/svg%3E" alt="AUDAX" style="max-width: 100%; max-height: 100%; object-fit: contain;">
-          </div>
+        <div class="qr-barcode-container" style="justify-content: center;">
+          <div id="qrCode" style="transform: scale(1.3); transform-origin: center;"></div>
         </div>
 
         <div class="etiqueta-row">
@@ -725,6 +753,214 @@ function showMessage(texto, tipo) {
   msg.textContent = texto;
   msg.className = `message ${tipo}`;
   setTimeout(() => msg.className = 'message', 3000);
+}
+
+// Variáveis para Excel
+let dadosExcel = [];
+let itensComMarca = [];
+
+// Abrir modal de importação Excel
+function abrirModalImportarExcel() {
+  document.getElementById('modalImportarExcel').style.display = 'flex';
+  document.getElementById('excelStatus').textContent = '';
+  document.getElementById('excelFileInput').value = '';
+  document.getElementById('excelPreview').style.display = 'none';
+  document.getElementById('gerarEtiquetasExcelBtn').disabled = true;
+  document.getElementById('gerarEtiquetasExcelBtn').style.background = '#ccc';
+  dadosExcel = [];
+  itensComMarca = [];
+}
+
+// Fechar modal
+function fecharModalExcel() {
+  document.getElementById('modalImportarExcel').style.display = 'none';
+}
+
+// Carregar e processar arquivo Excel
+function carregarExcel(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    try {
+      // Usar SheetJS para ler o arquivo
+      const data = new Uint8Array(e.target.result);
+      const workbook = XLSX.read(data, { type: 'array' });
+      const worksheet = workbook.Sheets[workbook.SheetNames[0]];
+      const jsonData = XLSX.utils.sheet_to_json(worksheet);
+
+      dadosExcel = jsonData;
+
+      // Procurar coluna com "QTDE AJUSTADA" ou similares
+      let colunaMarca = null;
+      if (dadosExcel.length > 0) {
+        const colunas = Object.keys(dadosExcel[0]);
+        colunaMarca = colunas.find(col => col.toUpperCase().includes('QTDE') || col.toUpperCase().includes('AJUSTADA'));
+      }
+
+      if (!colunaMarca) {
+        document.getElementById('excelStatus').textContent = '❌ Coluna "QTDE AJUSTADA" não encontrada';
+        return;
+      }
+
+      // Filtrar itens que contêm 🏷️
+      itensComMarca = dadosExcel.filter(item => {
+        const valor = item[colunaMarca];
+        return valor && valor.toString().includes('🏷️');
+      });
+
+      if (itensComMarca.length === 0) {
+        document.getElementById('excelStatus').textContent = '⚠️  Nenhum item com 🏷️ encontrado';
+        return;
+      }
+
+      // Mostrar preview
+      document.getElementById('excelStatus').textContent = `✅ ${itensComMarca.length} itens com 🏷️ encontrados`;
+      document.getElementById('excelPreview').style.display = 'block';
+
+      let html = '';
+      itensComMarca.slice(0, 10).forEach((item, idx) => {
+        const sku = item.SKU || item.Sku || item['SKU do Produto'] || Object.values(item)[0];
+        const desc = item.Descrição || item['DESCRIÇÃO'] || '';
+        html += `<div style="margin-bottom:8px;padding:8px;background:white;border-radius:4px;">
+          <strong>${idx + 1}.</strong> ${sku} - ${desc}
+        </div>`;
+      });
+
+      if (itensComMarca.length > 10) {
+        html += `<div style="text-align:center;color:#999;font-size:11px;margin-top:8px;">... e mais ${itensComMarca.length - 10} itens</div>`;
+      }
+
+      document.getElementById('excelPreviewList').innerHTML = html;
+
+      // Habilitar botão de gerar
+      const btn = document.getElementById('gerarEtiquetasExcelBtn');
+      btn.disabled = false;
+      btn.style.background = '#27ae60';
+      btn.style.cursor = 'pointer';
+
+      console.log(`Excel carregado: ${itensComMarca.length} itens com marca`);
+    } catch (erro) {
+      document.getElementById('excelStatus').textContent = '❌ Erro ao carregar arquivo Excel';
+      console.error('Erro ao processar Excel:', erro);
+    }
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+// Gerar etiquetas em lote
+function gerarEtiquetasEmLote() {
+  if (itensComMarca.length === 0) {
+    alert('Nenhum item para processar');
+    return;
+  }
+
+  // Encontrar colunas de SKU, Descrição, UM, Fornecedor
+  const colunas = Object.keys(itensComMarca[0]);
+  const colSKU = colunas.find(col => col.toUpperCase().includes('SKU'));
+  const colDesc = colunas.find(col => col.toUpperCase().includes('DESCRIÇÃO') || col.toUpperCase().includes('DESC'));
+  const colUM = colunas.find(col => col.toUpperCase().includes('UM') || col.toUpperCase().includes('UNIDADE'));
+  const colForn = colunas.find(col => col.toUpperCase().includes('FORNECEDOR') || col.toUpperCase().includes('FORM'));
+  const colQtde = colunas.find(col => col.toUpperCase().includes('QTD') || col.toUpperCase().includes('QUANTIDADE'));
+
+  let html = '<div style="page-break-after: auto;">';
+
+  itensComMarca.forEach((item, idx) => {
+    const sku = item[colSKU] || '';
+    const desc = item[colDesc] || '';
+    const um = item[colUM] || '';
+    const forn = item[colForn] || '';
+    const qtde = item[colQtde] || '1';
+
+    // Gerar QR code com número incremental
+    const qrContent = `${sku}-${qtde}-${numeroIncremental}`;
+    const qrId = `qrExcel_${idx}`;
+
+    html += `
+      <div style="page-break-after: always; width: 100%; padding: 20px; text-align: center; page-break-inside: avoid;">
+        <div style="border: 1px solid #333; padding: 15px; max-width: 600px; margin: 0 auto; font-family: Arial; font-size: 12px; text-align: left;">
+          <div style="text-align: center; margin-bottom: 10px; padding-bottom: 10px; border-bottom: 2px solid #333; font-weight: bold;">
+            AUDAX ELECTRONICS
+          </div>
+
+          <div style="display: flex; justify-content: center; margin: 15px 0; gap: 20px;">
+            <div id="${qrId}" style="flex-shrink: 0;"></div>
+          </div>
+
+          <div style="margin-bottom: 5px;">
+            <strong>SKU:</strong> <span style="float: right;">${sku}</span>
+          </div>
+          <div style="font-size: 11px; margin-bottom: 8px;">${desc}</div>
+
+          <div style="border-top: 1px solid #999; padding-top: 8px; margin-top: 8px;">
+            <div style="margin-bottom: 5px;">
+              <strong>Qtde:</strong> <span style="float: right;">${qtde} ${um}</span>
+            </div>
+            <div style="margin-bottom: 5px;">
+              <strong>Form:</strong> <span style="float: right;">${forn}</span>
+            </div>
+            <div style="margin-bottom: 5px;">
+              <strong>Data:</strong> <span style="float: right;">${new Date().toLocaleDateString('pt-BR')}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+
+    numeroIncremental++;
+    localStorage.setItem('numeroIncremental', numeroIncremental);
+  });
+
+  html += '</div>';
+
+  // Criar janela de impressão com as etiquetas
+  const printWindow = window.open('', '', 'width=800,height=600');
+  printWindow.document.write(`
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="UTF-8">
+      <title>Etiquetas em Lote</title>
+      <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"><\/script>
+      <style>
+        body { margin: 0; padding: 10px; font-family: Arial; background: #fff; }
+        @media print {
+          body { margin: 0; padding: 0; }
+          .etiqueta { page-break-after: always; }
+        }
+      </style>
+    </head>
+    <body>
+      ${html}
+      <script>
+        // Gerar QR codes para cada etiqueta
+        ${itensComMarca.map((item, idx) => {
+          const sku = item[colSKU] || '';
+          const qtde = item[colQtde] || '1';
+          const num = 990001 + idx + (parseInt(localStorage.getItem('numeroIncremental') || 990001) - itensComMarca.length);
+          return `
+            new QRCode(document.getElementById('qrExcel_${idx}'), {
+              text: '${sku}-${qtde}-${num}',
+              width: 80,
+              height: 80,
+              colorDark: '#000000',
+              colorLight: '#ffffff',
+              correctLevel: QRCode.CorrectLevel.H
+            });
+          `;
+        }).join('')}
+
+        window.print();
+        window.close();
+      </script>
+    </body>
+    </html>
+  `);
+  printWindow.document.close();
+
+  fecharModalExcel();
+  showMessage(`✅ ${itensComMarca.length} etiquetas geradas!`, 'success');
 }
 
 // CSS para impressão
