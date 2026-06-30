@@ -195,6 +195,10 @@
       <label for="um">Unidade de Medida</label>
       <input type="text" id="um" placeholder="Ex: PC" value="PC">
     </div>
+    <div>
+      <label for="localizacao">Localização</label>
+      <input type="text" id="localizacao" placeholder="Ex: A-10, Prateleira 5">
+    </div>
   </div>
 
   <div class="buttons">
@@ -247,6 +251,7 @@ function adicionarEtiqueta() {
   const desc = document.getElementById('descricao').value.trim();
   const qtde = parseInt(document.getElementById('quantidade').value) || 1;
   const um = document.getElementById('um').value.trim() || 'PC';
+  const localizacao = document.getElementById('localizacao').value.trim();
 
   if (!sku) {
     alert('SKU é obrigatório');
@@ -254,7 +259,7 @@ function adicionarEtiqueta() {
   }
 
   // Adicionar à lista
-  etiquetas.push({ sku, desc, qtde, um });
+  etiquetas.push({ sku, desc, qtde, um, localizacao });
 
   // Renderizar
   renderizarEtiquetas();
@@ -264,6 +269,7 @@ function adicionarEtiqueta() {
   document.getElementById('descricao').value = '';
   document.getElementById('quantidade').value = '1';
   document.getElementById('um').value = 'PC';
+  document.getElementById('localizacao').value = '';
   document.getElementById('skuInput').focus();
 }
 
@@ -285,6 +291,7 @@ function renderizarEtiquetas() {
           <div>${etiqueta.desc || '-'}</div>
           <strong style="margin-top: 2px;">Qtde:</strong>
           <div>${etiqueta.qtde} ${etiqueta.um}</div>
+          ${etiqueta.localizacao ? `<strong style="margin-top: 2px;">Local:</strong><div>${etiqueta.localizacao}</div>` : ''}
         </div>
         <div class="qr-code" id="${qrId}" style="width: 45mm; height: 45mm;"></div>
       </div>
