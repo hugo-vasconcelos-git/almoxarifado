@@ -288,7 +288,9 @@
 
         <div class="qr-barcode-container">
           <div id="qrCode"></div>
-          <svg id="barcode"></svg>
+          <div id="logoContainer" style="flex-shrink: 0; display: flex; align-items: center; justify-content: center; width: 100px; height: 100px;">
+            <img id="logoAudax" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 80'%3E%3Ctext x='10' y='60' font-size='48' font-weight='bold' font-family='Arial' fill='%23000'%3EAUDAX%3C/text%3E%3C/svg%3E" alt="AUDAX" style="max-width: 100%; max-height: 100%; object-fit: contain;">
+          </div>
         </div>
 
         <div class="etiqueta-row">
@@ -593,13 +595,7 @@ function gerarEtiqueta() {
     correctLevel: QRCode.CorrectLevel.H
   });
 
-  // Gerar código de barras
-  JsBarcode("#barcode", sku, {
-    format: "CODE128",
-    width: 2,
-    height: 100,
-    displayValue: false
-  });
+  // Logo AUDAX já está renderizado na etiqueta
 
   // Incrementar número e salvar em localStorage
   numeroIncremental++;
