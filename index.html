@@ -412,7 +412,7 @@ function atualizarPrateleiras(rua) {
     for (let i = 1; i <= 27; i++) {
       const opt = document.createElement('option');
       opt.value = i;
-      opt.textContent = i;
+      opt.textContent = String(i).padStart(2, '0');
       sel.appendChild(opt);
     }
     ['A', 'B'].forEach(l => {
@@ -421,6 +421,7 @@ function atualizarPrateleiras(rua) {
       opt.textContent = l;
       sel.appendChild(opt);
     });
+    console.log('✓ Prateleiras SB atualizadas: 01-27, A, B');
   } else {
     for (let i = 1; i <= 200; i++) {
       const opt = document.createElement('option');
