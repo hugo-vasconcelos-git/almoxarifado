@@ -792,26 +792,46 @@ function carregarExcel(event) {
 
       dadosExcel = jsonData;
 
-      // Procurar coluna com "QTDE AJUSTADA" ou similares
-      let colunaMarca = null;
-      if (dadosExcel.length > 0) {
-        const colunas = Object.keys(dadosExcel[0]);
-        colunaMarca = colunas.find(col => col.toUpperCase().includes('QTDE') || col.toUpperCase().includes('AJUSTADA'));
+      if (dadosExcel.length === 0) {
+        document.getElementById('excelStatus').textContent = '❌ Arquivo vazio';
+        return;
       }
 
+      console.log('Colunas encontradas:', Object.keys(dadosExcel[0]));
+      console.log('Primeiros dados:', dadosExcel[0]);
+
+      // Procurar coluna com "QTDE AJUSTADA" (case insensitive, ignorando espaços)
+      let colunaMarca = null;
+      const colunas = Object.keys(dadosExcel[0]);
+      colunaMarca = colunas.find(col => {
+        const colNorm = col.trim().toUpperCase();
+        return colNorm.includes('QTDE') && colNorm.includes('AJUSTADA');
+      });
+
       if (!colunaMarca) {
+        console.warn('Colunas disponíveis:', colunas);
         document.getElementById('excelStatus').textContent = '❌ Coluna "QTDE AJUSTADA" não encontrada';
         return;
       }
 
+      console.log('Coluna encontrada:', colunaMarca);
+
       // Filtrar itens que contêm 🏷️
       itensComMarca = dadosExcel.filter(item => {
         const valor = item[colunaMarca];
-        return valor && valor.toString().includes('🏷️');
+        if (!valor) return false;
+        const str = valor.toString().trim();
+        const temMarca = str.includes('🏷️');
+        if (temMarca) {
+          console.log('Item encontrado:', str, '| SKU:', item.CÓDIGO || item.SKU);
+        }
+        return temMarca;
       });
 
+      console.log('Itens com marca encontrados:', itensComMarca.length);
+
       if (itensComMarca.length === 0) {
-        document.getElementById('excelStatus').textContent = '⚠️  Nenhum item com 🏷️ encontrado';
+        document.getElementById('excelStatus').textContent = '⚠️  Nenhum item com 🏷️ encontrado na coluna "' + colunaMarca + '"';
         return;
       }
 
@@ -821,8 +841,8 @@ function carregarExcel(event) {
 
       let html = '';
       itensComMarca.slice(0, 10).forEach((item, idx) => {
-        const sku = item.SKU || item.Sku || item['SKU do Produto'] || Object.values(item)[0];
-        const desc = item.Descrição || item['DESCRIÇÃO'] || '';
+        const sku = item.CÓDIGO || item.SKU || item['SKU do Produto'] || item['Código'] || Object.values(item)[0];
+        const desc = item.DESCRIÇÃO || item.Descrição || item['DESCRIÇÃO'] || '';
         html += `<div style="margin-bottom:8px;padding:8px;background:white;border-radius:4px;">
           <strong>${idx + 1}.</strong> ${sku} - ${desc}
         </div>`;
@@ -856,13 +876,35 @@ function gerarEtiquetasEmLote() {
     return;
   }
 
-  // Encontrar colunas de SKU, Descrição, UM, Fornecedor
+  // Encontrar colunas de SKU, Descrição, UM, Fornecedor (case insensitive)
   const colunas = Object.keys(itensComMarca[0]);
-  const colSKU = colunas.find(col => col.toUpperCase().includes('SKU'));
-  const colDesc = colunas.find(col => col.toUpperCase().includes('DESCRIÇÃO') || col.toUpperCase().includes('DESC'));
-  const colUM = colunas.find(col => col.toUpperCase().includes('UM') || col.toUpperCase().includes('UNIDADE'));
-  const colForn = colunas.find(col => col.toUpperCase().includes('FORNECEDOR') || col.toUpperCase().includes('FORM'));
-  const colQtde = colunas.find(col => col.toUpperCase().includes('QTD') || col.toUpperCase().includes('QUANTIDADE'));
+
+  const colSKU = colunas.find(col => {
+    const c = col.toUpperCase();
+    return c.includes('CÓDIGO') || c.includes('SKU') || c.includes('PRODUCT');
+  });
+
+  const colDesc = colunas.find(col => {
+    const c = col.toUpperCase();
+    return c.includes('DESCRIÇÃO') || c.includes('DESC') || c.includes('DESCRIPTION');
+  });
+
+  const colUM = colunas.find(col => {
+    const c = col.toUpperCase();
+    return c === 'UM' || c.includes('UNIDADE') || c.includes('UNIT');
+  });
+
+  const colForn = colunas.find(col => {
+    const c = col.toUpperCase();
+    return c.includes('FORNECEDOR') || c.includes('FORM') || c.includes('SUPPLIER') || c.includes('ENDEREÇO');
+  });
+
+  const colQtde = colunas.find(col => {
+    const c = col.toUpperCase();
+    return c === 'QTDE' || c === 'QTD' || c.includes('QUANTIDADE') || c.includes('QUANTITY');
+  });
+
+  console.log('Colunas identificadas:', { colSKU, colDesc, colUM, colForn, colQtde });
 
   // Salvar números dos QR codes antes de gerar
   const qrNumbers = [];
