@@ -22,6 +22,8 @@
   .logo span{color:var(--muted);}
   .header-right{display:flex;align-items:center;gap:8px;}
   .badge{background:var(--border);border-radius:12px;padding:4px 10px;font-family:var(--mono);font-size:11px;color:var(--muted);border:none;cursor:pointer;transition:all .2s;}
+  .user-avatar{width:32px;height:32px;border-radius:50%;background:var(--accent);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:bold;font-size:12px;cursor:pointer;transition:all .2s;border:2px solid transparent;}
+  .user-avatar:hover{border-color:var(--accent);opacity:.8;}
   .badge:hover{background:var(--accent);color:#fff;}
   .badge.open{background:color-mix(in srgb,var(--accent) 20%,transparent);color:var(--accent);}
   .badge.ready{background:color-mix(in srgb,var(--green) 20%,transparent);color:var(--green);}
@@ -165,6 +167,7 @@
   <div class="header-right">
     <button class="badge" id="sb1Badge" onclick="document.getElementById('sb1FileInput').click()" title="Clique para recarregar SB1">📦 SB1</button>
     <span class="badge" id="statBadge">Sem endereço</span>
+    <div class="user-avatar" id="userAvatar" onclick="mostrarModalUsuario()" title="Clique para alterar usuário">--</div>
   </div>
 </div>
 
@@ -1586,6 +1589,7 @@ function salvarUsuario() {
     console.warn('⚠️ Não foi possível salvar usuário no localStorage');
   }
   usuarioAtual = user;
+  atualizarAvatarUsuario();
   document.getElementById('modalLogin').classList.remove('active');
   showToast(`✓ Usuário ${user} salvo!`, 'ok');
 }
@@ -1600,6 +1604,26 @@ function mostrarModalLogin() {
   document.getElementById('modalUserInput').addEventListener('keydown', e => {
     if (e.key === 'Enter') salvarUsuario();
   });
+}
+
+function atualizarAvatarUsuario() {
+  const user = getUserName();
+  const avatar = document.getElementById('userAvatar');
+  if (user) {
+    const partes = user.split('.');
+    const iniciais = (partes[0][0] + partes[1][0]).toUpperCase();
+    avatar.textContent = iniciais;
+  } else {
+    avatar.textContent = '--';
+  }
+}
+
+function mostrarModalUsuario() {
+  document.getElementById('modalLogin').classList.add('active');
+  const input = document.getElementById('modalUserInput');
+  input.value = getUserName() || '';
+  input.focus();
+  input.select();
 }
 
 // Enter no campo manual
@@ -1619,6 +1643,7 @@ document.addEventListener('DOMContentLoaded',()=>{
   setTimeout(() => {
     mostrarModalSB1();
     setTimeout(() => mostrarModalLogin(), 300);
+    atualizarAvatarUsuario();
   }, 100);
 
   // Enter na modal de quantidade
