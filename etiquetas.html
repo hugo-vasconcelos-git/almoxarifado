@@ -223,20 +223,24 @@
     </div>
 
     <div>
-      <label>Rua Inicial (A-O):</label>
+      <label>Rua Inicial (A-Z):</label>
       <select id="ruaInicial">
         <option>A</option><option>B</option><option>C</option><option>D</option><option>E</option>
         <option>F</option><option>G</option><option>H</option><option>I</option><option>J</option>
         <option>K</option><option>L</option><option>M</option><option>N</option><option selected>O</option>
+        <option>P</option><option>Q</option><option>R</option><option>S</option><option>T</option>
+        <option>U</option><option>V</option><option>W</option><option>X</option><option>Y</option><option>Z</option>
       </select>
     </div>
 
     <div>
-      <label>Rua Final (A-O):</label>
+      <label>Rua Final (A-Z):</label>
       <select id="ruaFinal">
         <option>A</option><option>B</option><option>C</option><option>D</option><option>E</option>
         <option>F</option><option>G</option><option>H</option><option>I</option><option>J</option>
         <option>K</option><option>L</option><option>M</option><option>N</option><option selected>O</option>
+        <option>P</option><option>Q</option><option>R</option><option>S</option><option>T</option>
+        <option>U</option><option>V</option><option>W</option><option>X</option><option>Y</option><option>Z</option>
       </select>
     </div>
 
@@ -265,7 +269,7 @@
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 <script>
-const RUAS = ['A','B','C','D','E','F','G','H','I','J','K','L','M','N','O'];
+const RUAS = ['A','B','C','D','E','F','G','H','I','J','K','L','M','N','O','P','Q','R','S','T','U','V','W','X','Y','Z'];
 
 function gerarEtiquetas() {
   const ruaInicial = document.getElementById('ruaInicial').value;
