@@ -1012,7 +1012,14 @@ function processarEndereco(codigo) {
 
 function abrirEndereco(rua, prat) {
   fase = 'open'; ruaAtual = rua; pratAtual = prat; itens = {}; lidos = new Set(); itensEditados = new Set(); multiplicador = 1;
-  document.getElementById('seletorEndereco').style.display = 'none';
+
+  // Manter inputEndereco visível para permitir bipar TAG novamente para fechar
+  document.getElementById('inputEndereco').style.display = 'block';
+  document.getElementById('inputEndereco').value = '';
+  document.getElementById('inputEndereco').focus();
+
+  // Ocultar seletor manual mas manter área de itens visível
+  document.querySelector('.manual-wrap').style.display = 'none';
   document.getElementById('secaoItens').style.display      = 'flex';
   atualizarStatus();
   renderLista();
@@ -1059,8 +1066,12 @@ function cancelar(silencioso=false) {
   document.querySelectorAll('.rua-cel').forEach(c=>c.classList.remove('sel'));
   document.getElementById('selPrateleira').value = '';
   document.getElementById('btnAbrir').disabled = true;
-  document.getElementById('seletorEndereco').style.display = 'block';
+
+  // Restaurar interface inicial
+  document.getElementById('inputEndereco').style.display = 'none';
+  document.querySelector('.manual-wrap').style.display = 'block';
   document.getElementById('secaoItens').style.display      = 'none';
+
   atualizarStatus();
   renderLista();
   document.getElementById('btnFechar').disabled   = true;
