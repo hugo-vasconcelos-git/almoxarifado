@@ -513,6 +513,12 @@ window.addEventListener('DOMContentLoaded', () => {
   document.getElementById('inputEndereco').addEventListener('keydown', e => {
     if (e.key==='Enter'){
       e.preventDefault();
+      // Ignorar input de inputEndereco quando endereço já está aberto
+      // (leitor pode estar injetando em ambos os campos, mas queremos que vá para manualSku)
+      if (fase === 'open') {
+        document.getElementById('inputEndereco').value = '';
+        return;
+      }
       const codigo = document.getElementById('inputEndereco').value.trim().toUpperCase();
       if (codigo) {
         processarEndereco(codigo);
