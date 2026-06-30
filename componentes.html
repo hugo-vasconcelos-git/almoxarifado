@@ -187,6 +187,22 @@
 </head>
 <body>
 
+<!-- MODAL UPLOAD SA2 -->
+<div id="modalSA2" style="position:fixed;inset:0;background:rgba(0,0,0,0.8);z-index:1000;display:none;flex-direction:column;align-items:center;justify-content:center;padding:20px;">
+  <div style="background:white;border-radius:16px;padding:28px;width:100%;max-width:340px;display:flex;flex-direction:column;gap:16px;">
+    <div style="font-size:18px;font-weight:700;color:#333;">📦 Carregar Fornecedores</div>
+    <div style="font-size:13px;color:#666;line-height:1.5;">Selecione o arquivo SA2_mobile.json para carregar a lista de fornecedores:</div>
+    <div style="background:#f5f5f5;border:2px dashed #3b6ef6;border-radius:8px;padding:20px;text-align:center;cursor:pointer;" onclick="document.getElementById('sa2FileInput').click()">
+      <div style="font-size:28px;margin-bottom:8px;">📁</div>
+      <div style="font-weight:600;color:#333;">Clique para selecionar</div>
+      <div style="font-size:11px;color:#999;margin-top:8px;">ou arraste o arquivo aqui</div>
+    </div>
+    <input type="file" id="sa2FileInput" accept=".json" style="display:none;" onchange="carregarSA2Upload(event)">
+    <div id="sa2Status" style="font-size:12px;color:#666;text-align:center;"></div>
+    <button id="sa2Btn" onclick="confirmarSA2()" disabled style="background:#ccc;cursor:not-allowed;color:white;border:none;padding:10px;border-radius:4px;font-weight:bold;">Continuar</button>
+  </div>
+</div>
+
 <div class="container">
   <div class="header">
     <h1>🏷️ Etiquetas de Componentes</h1>
@@ -285,17 +301,23 @@
 
 <script>
 let sb1Data = {};
-let sa1Data = {};
+let sa2Data = {};
 
 // Carregar dados ao abrir página
 window.addEventListener('DOMContentLoaded', () => {
-  carregarDados();
+  const sa2Carregado = localStorage.getItem('sa2Carregado');
+  if (!sa2Carregado) {
+    document.getElementById('modalSA2').style.display = 'flex';
+  } else {
+    sa2Data = JSON.parse(localStorage.getItem('sa2Data'));
+    preencherFornecedores();
+  }
+  carregarDadosSB1();
   document.getElementById('data').valueAsDate = new Date();
 });
 
-// Carregar SB1 e SA1
-function carregarDados() {
-  // Carregar SB1
+// Carregar SB1
+function carregarDadosSB1() {
   fetch('SB1_mobile.json')
     .then(r => r.json())
     .then(d => {
@@ -305,32 +327,72 @@ function carregarDados() {
       }
     })
     .catch(e => console.error('Erro ao carregar SB1:', e));
-
-  // Carregar SA1 (fornecedores)
-  fetch('SA1_mobile.json')
-    .then(r => r.json())
-    .then(d => {
-      if (d.data) {
-        sa1Data = JSON.parse(atob(d.data));
-        preencherFornecedores();
-        console.log('SA1 carregado:', Object.keys(sa1Data).length);
-      }
-    })
-    .catch(e => console.error('Erro ao carregar SA1:', e));
 }
 
-// Preencher dropdown de fornecedores
+// Upload de arquivo SA2
+function carregarSA2Upload(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    try {
+      const conteudo = JSON.parse(e.target.result);
+
+      // Decodificar Base64 se estiver ofuscado
+      let dados = conteudo;
+      if (conteudo.data && typeof conteudo.data === 'string') {
+        dados = JSON.parse(atob(conteudo.data));
+      }
+
+      sa2Data = Array.isArray(dados) ? dados : Object.values(dados);
+
+      // Salvar em localStorage
+      localStorage.setItem('sa2Data', JSON.stringify(sa2Data));
+      localStorage.setItem('sa2Carregado', 'true');
+
+      document.getElementById('sa2Status').textContent = `✅ Carregado ${sa2Data.length} fornecedores`;
+      document.getElementById('sa2Btn').disabled = false;
+      document.getElementById('sa2Btn').style.background = '#3b6ef6';
+      document.getElementById('sa2Btn').style.cursor = 'pointer';
+    } catch (erro) {
+      document.getElementById('sa2Status').textContent = '❌ Erro ao carregar arquivo';
+      console.error(erro);
+    }
+  };
+  reader.readAsText(file);
+}
+
+// Confirmar e fechar modal
+function confirmarSA2() {
+  if (sa2Data.length === 0) return;
+  document.getElementById('modalSA2').style.display = 'none';
+  preencherFornecedores();
+}
+
+// Preencher dropdown de fornecedores (coluna a2_nreduz)
 function preencherFornecedores() {
   const select = document.getElementById('fornecedor');
-  const option0 = select.querySelector('option');
 
-  Object.keys(sa1Data).sort().forEach(chave => {
-    const fornecedor = sa1Data[chave];
+  // Limpar opções existentes (mantém a primeira)
+  while (select.options.length > 1) {
+    select.remove(1);
+  }
+
+  // Usar coluna a2_nreduz (nome reduzido do fornecedor)
+  const fornecedores = Array.isArray(sa2Data) ? sa2Data : Object.values(sa2Data);
+
+  const nomes = [...new Set(fornecedores.map(f => f.a2_nreduz || f.nome).filter(n => n))]
+    .sort();
+
+  nomes.forEach(nome => {
     const opt = document.createElement('option');
-    opt.value = fornecedor.a1_nome || fornecedor.nome || chave;
-    opt.textContent = fornecedor.a1_nome || fornecedor.nome || chave;
+    opt.value = nome;
+    opt.textContent = nome;
     select.appendChild(opt);
   });
+
+  console.log('Fornecedores carregados:', nomes.length);
 }
 
 // Autocomplete para SKU
