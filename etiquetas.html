@@ -235,6 +235,7 @@
 
     <div class="button-group">
       <button onclick="gerarEtiquetas()">📋 Gerar Etiquetas</button>
+      <button onclick="gerarZPL()" style="background: #ff9800;">🖨️ Gerar ZPL (Zebra)</button>
       <button onclick="window.print()" style="background: #00c9a7;">🖨️ Imprimir</button>
       <button onclick="limparEtiquetas()" style="background: #e84040;">🗑️ Limpar</button>
     </div>
@@ -327,6 +328,71 @@ function limparEtiquetas() {
 
 function atualizarTamanho() {
   gerarEtiquetas();
+}
+
+// Gerar código ZPL para impressora Zebra ZD220
+function gerarZPL() {
+  const ruaInicial = document.getElementById('ruaInicial').value;
+  const ruaFinal = document.getElementById('ruaFinal').value;
+  const pratInicial = parseInt(document.getElementById('pratInicial').value);
+  const pratFinal = parseInt(document.getElementById('pratFinal').value);
+
+  const idxRuaIni = RUAS.indexOf(ruaInicial);
+  const idxRuaFim = RUAS.indexOf(ruaFinal);
+
+  if (idxRuaIni > idxRuaFim || pratInicial > pratFinal) {
+    alert('Configuração inválida');
+    return;
+  }
+
+  let zplCode = '';
+  let count = 0;
+
+  // Header ZPL
+  zplCode += '^XA\n';
+  zplCode += '^PON\n';
+  zplCode += '^MMT\n';
+  zplCode += '^PW203\n';
+  zplCode += '^LL203\n';
+  zplCode += '^LS0\n';
+
+  // Gerar etiquetas
+  for (let i = idxRuaIni; i <= idxRuaFim; i++) {
+    const rua = RUAS[i];
+    for (let prat = pratInicial; prat <= pratFinal; prat++) {
+      const codigo = `${rua}${String(prat).padStart(2, '0')}`;
+
+      // Cada etiqueta (formato ZPL para 50.8mm x 20.3mm @ 203dpi)
+      zplCode += `^FO10,10\n`;
+      zplCode += `^A0N,35,35\n`;
+      zplCode += `^FD${rua}^FS\n`;
+      zplCode += `^FO10,45\n`;
+      zplCode += `^A0N,28,28\n`;
+      zplCode += `^FDPrat ${prat}^FS\n`;
+      zplCode += `^FO100,10\n`;
+      zplCode += `^BQN,2,3\n`;
+      zplCode += `^FD${codigo}^FS\n`;
+      zplCode += `^FO145,10\n`;
+      zplCode += `^A0N,40,40\n`;
+      zplCode += `^FD${codigo}^FS\n`;
+      zplCode += `^PQ1,0,1,Y\n`;
+
+      count++;
+    }
+  }
+
+  // Footer ZPL
+  zplCode += '^XZ\n';
+
+  // Copiar para clipboard
+  navigator.clipboard.writeText(zplCode).then(() => {
+    alert(`✅ ${count} etiquetas ZPL copiadas para clipboard!\n\nCole o código no software Zebra Designer ou envie diretamente para a impressora.`);
+  }).catch(err => {
+    // Fallback: abrir em nova janela
+    const win = window.open('', 'ZPL_Output', 'width=800,height=600');
+    win.document.write('<pre>' + zplCode.replace(/</g, '&lt;').replace(/>/g, '&gt;') + '</pre>');
+    win.document.title = 'Código ZPL - Copie e cole na impressora Zebra';
+  });
 }
 
 // Gerar ao carregar (padrão: todas as prateleiras da rua O)
