@@ -985,59 +985,59 @@ function gerarEtiquetasEmLote() {
     const qrId = 'qr' + idx;
 
     html += `
-    <div style="page-break-after: always; padding: 0.7mm 1mm; width: 100%; height: 100%; display: flex; flex-direction: column; overflow: hidden;">
-      <div style="border: 1px solid #000; padding: 0.7mm 1mm; flex: 1; font-family: Arial; display: flex; gap: 0.8mm; overflow: hidden;">
+    <div style="page-break-after: always; padding: 0.5mm 0.8mm; width: 100%; height: 100%;">
+      <div style="border: 0.8px solid #000; padding: 0.5mm 0.8mm; width: 100%; height: 100%; font-family: Arial, sans-serif; display: grid; grid-template-columns: 22mm 1fr; gap: 0.5mm; box-sizing: border-box; overflow: hidden;">
+
         <!-- ESQUERDA: LOGO + QR -->
-        <div style="width: 2.8cm; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.3mm; flex-shrink: 0;">
-          <svg width="28mm" height="6mm" viewBox="0 0 140 30" xmlns="http://www.w3.org/2000/svg" style="margin-bottom: 0.3mm;">
-            <!-- AUDAX Text -->
-            <text x="0" y="16" font-size="14" font-weight="900" font-family="Arial, sans-serif" fill="#000">AUDAX</text>
-            <!-- ELECTRONICS Text -->
-            <text x="0" y="25" font-size="6" font-weight="bold" font-family="Arial, sans-serif" fill="#000">ELECTRONICS</text>
-            <!-- Barras verticais -->
-            <rect x="110" y="2" width="3" height="22" fill="#000"/>
-            <rect x="117" y="2" width="3" height="22" fill="#000"/>
-            <rect x="124" y="2" width="3" height="22" fill="#000"/>
-            <rect x="131" y="2" width="3" height="22" fill="#000"/>
-          </svg>
+        <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.3mm;">
+          <div style="font-size: 7px; font-weight: bold; text-align: center; line-height: 1.1;">
+            <div>AUDAX</div>
+            <div style="font-size: 5px;">ELECTRONICS</div>
+          </div>
+          <div style="display: flex; gap: 1px; margin: 0.2mm 0;">
+            <div style="width: 1.5px; height: 3mm; background: #000;"></div>
+            <div style="width: 1.5px; height: 3mm; background: #000;"></div>
+            <div style="width: 1.5px; height: 3mm; background: #000;"></div>
+          </div>
           <div id="${qrId}" style="display: inline-block;"></div>
         </div>
 
         <!-- DIREITA: INFORMAÇÕES -->
-        <div style="flex: 1; display: flex; flex-direction: column; font-size: 6px; text-align: left; gap: 0.3mm; overflow: hidden;">
+        <div style="display: flex; flex-direction: column; gap: 0.2mm; overflow: hidden;">
           <!-- SKU -->
-          <div style="border-bottom: 0.5px solid #000; padding-bottom: 0.2mm; line-height: 1;">
-            <strong style="font-size: 5px;">SKU:</strong>
-            <div style="font-size: 6px; font-weight: bold; line-height: 1;">${sku}</div>
+          <div style="border-bottom: 0.5px solid #000; padding-bottom: 0.15mm;">
+            <span style="font-size: 4px; font-weight: bold;">SKU:</span>
+            <span style="font-size: 5px; font-weight: bold; float: right;">${sku}</span>
+            <div style="clear: both;"></div>
           </div>
 
           <!-- DESCRIÇÃO -->
-          <div style="border-bottom: 0.5px solid #000; padding-bottom: 0.2mm; line-height: 1; flex-shrink: 0;">
-            <strong style="font-size: 5px;">Desc:</strong>
-            <div style="font-size: 5px; line-height: 1;">${desc.substring(0, 30)}</div>
+          <div style="border-bottom: 0.5px solid #000; padding-bottom: 0.15mm; font-size: 4px; line-height: 1.1;">
+            <strong>Desc:</strong>
+            <div>${desc.substring(0, 25)}</div>
           </div>
 
           <!-- QTDE E FORM -->
-          <div style="display: flex; gap: 1.5mm; border-bottom: 0.5px solid #000; padding-bottom: 0.2mm; line-height: 1;">
-            <div style="flex: 1; line-height: 1;">
-              <strong style="font-size: 5px;">Qtde:</strong>
-              <div style="font-size: 5px;">${qtde} ${um}</div>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5mm; border-bottom: 0.5px solid #000; padding-bottom: 0.15mm; font-size: 4px;">
+            <div>
+              <strong>Qtde:</strong>
+              <div>${qtde} ${um}</div>
             </div>
-            <div style="flex: 1; line-height: 1;">
-              <strong style="font-size: 5px;">Form:</strong>
-              <div style="font-size: 5px;">${forn}</div>
+            <div>
+              <strong>Form:</strong>
+              <div>${forn}</div>
             </div>
           </div>
 
           <!-- DATA E NF -->
-          <div style="display: flex; gap: 1.5mm; font-size: 5px; line-height: 1;">
-            <div style="flex: 1;">
-              <strong style="font-size: 5px;">Data:</strong>
-              <div style="font-size: 5px;">${new Date().toLocaleDateString('pt-BR')}</div>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5mm; font-size: 4px;">
+            <div>
+              <strong>Data:</strong>
+              <div>${new Date().toLocaleDateString('pt-BR')}</div>
             </div>
-            <div style="flex: 1;">
-              <strong style="font-size: 5px;">NF:</strong>
-              <div style="font-size: 5px;">-</div>
+            <div>
+              <strong>NF:</strong>
+              <div>-</div>
             </div>
           </div>
         </div>
