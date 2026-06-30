@@ -864,100 +864,99 @@ function gerarEtiquetasEmLote() {
   const colForn = colunas.find(col => col.toUpperCase().includes('FORNECEDOR') || col.toUpperCase().includes('FORM'));
   const colQtde = colunas.find(col => col.toUpperCase().includes('QTD') || col.toUpperCase().includes('QUANTIDADE'));
 
-  let html = '<div style="page-break-after: auto;">';
+  // Salvar números dos QR codes antes de gerar
+  const qrNumbers = [];
+  let numAtual = numeroIncremental;
+  for (let i = 0; i < itensComMarca.length; i++) {
+    qrNumbers.push(numAtual);
+    numAtual++;
+  }
+  numeroIncremental = numAtual;
+  localStorage.setItem('numeroIncremental', numeroIncremental);
 
+  // Criar HTML das etiquetas
+  let html = '';
   itensComMarca.forEach((item, idx) => {
     const sku = item[colSKU] || '';
     const desc = item[colDesc] || '';
     const um = item[colUM] || '';
     const forn = item[colForn] || '';
     const qtde = item[colQtde] || '1';
-
-    // Gerar QR code com número incremental
-    const qrContent = `${sku}-${qtde}-${numeroIncremental}`;
-    const qrId = `qrExcel_${idx}`;
+    const qrId = 'qr' + idx;
 
     html += `
-      <div style="page-break-after: always; width: 100%; padding: 20px; text-align: center; page-break-inside: avoid;">
-        <div style="border: 1px solid #333; padding: 15px; max-width: 600px; margin: 0 auto; font-family: Arial; font-size: 12px; text-align: left;">
-          <div style="text-align: center; margin-bottom: 10px; padding-bottom: 10px; border-bottom: 2px solid #333; font-weight: bold;">
-            AUDAX ELECTRONICS
-          </div>
-
-          <div style="display: flex; justify-content: center; margin: 15px 0; gap: 20px;">
-            <div id="${qrId}" style="flex-shrink: 0;"></div>
-          </div>
-
+    <div style="page-break-after: always; padding: 20px; text-align: center;">
+      <div style="border: 1px solid #333; padding: 15px; max-width: 600px; margin: 0 auto; font-family: Arial; font-size: 12px; text-align: left;">
+        <div style="text-align: center; margin-bottom: 10px; padding-bottom: 10px; border-bottom: 2px solid #333; font-weight: bold;">
+          AUDAX ELECTRONICS
+        </div>
+        <div style="display: flex; justify-content: center; margin: 15px 0;">
+          <div id="${qrId}"></div>
+        </div>
+        <div style="margin-bottom: 5px;">
+          <strong>SKU:</strong> <span style="float: right;">${sku}</span><br style="clear:both;">
+        </div>
+        <div style="font-size: 11px; margin-bottom: 8px; clear: both;">${desc}</div>
+        <div style="border-top: 1px solid #999; padding-top: 8px; margin-top: 8px; clear: both;">
           <div style="margin-bottom: 5px;">
-            <strong>SKU:</strong> <span style="float: right;">${sku}</span>
+            <strong>Qtde:</strong> <span style="float: right;">${qtde} ${um}</span><br style="clear:both;">
           </div>
-          <div style="font-size: 11px; margin-bottom: 8px;">${desc}</div>
-
-          <div style="border-top: 1px solid #999; padding-top: 8px; margin-top: 8px;">
-            <div style="margin-bottom: 5px;">
-              <strong>Qtde:</strong> <span style="float: right;">${qtde} ${um}</span>
-            </div>
-            <div style="margin-bottom: 5px;">
-              <strong>Form:</strong> <span style="float: right;">${forn}</span>
-            </div>
-            <div style="margin-bottom: 5px;">
-              <strong>Data:</strong> <span style="float: right;">${new Date().toLocaleDateString('pt-BR')}</span>
-            </div>
+          <div style="margin-bottom: 5px;">
+            <strong>Form:</strong> <span style="float: right;">${forn}</span><br style="clear:both;">
+          </div>
+          <div style="margin-bottom: 5px;">
+            <strong>Data:</strong> <span style="float: right;">${new Date().toLocaleDateString('pt-BR')}</span><br style="clear:both;">
           </div>
         </div>
       </div>
+    </div>
     `;
-
-    numeroIncremental++;
-    localStorage.setItem('numeroIncremental', numeroIncremental);
   });
 
-  html += '</div>';
+  // Criar janela de impressão
+  const printWindow = window.open('', 'etiquetas', 'width=900,height=700');
+  const doc = printWindow.document;
 
-  // Criar janela de impressão com as etiquetas
-  const printWindow = window.open('', '', 'width=800,height=600');
-  printWindow.document.write(`
-    <!DOCTYPE html>
-    <html>
-    <head>
-      <meta charset="UTF-8">
-      <title>Etiquetas em Lote</title>
-      <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"><\/script>
-      <style>
-        body { margin: 0; padding: 10px; font-family: Arial; background: #fff; }
-        @media print {
-          body { margin: 0; padding: 0; }
-          .etiqueta { page-break-after: always; }
-        }
-      </style>
-    </head>
-    <body>
-      ${html}
-      <script>
-        // Gerar QR codes para cada etiqueta
-        ${itensComMarca.map((item, idx) => {
-          const sku = item[colSKU] || '';
-          const qtde = item[colQtde] || '1';
-          const num = 990001 + idx + (parseInt(localStorage.getItem('numeroIncremental') || 990001) - itensComMarca.length);
-          return `
-            new QRCode(document.getElementById('qrExcel_${idx}'), {
-              text: '${sku}-${qtde}-${num}',
-              width: 80,
-              height: 80,
-              colorDark: '#000000',
-              colorLight: '#ffffff',
-              correctLevel: QRCode.CorrectLevel.H
-            });
-          `;
-        }).join('')}
+  doc.write('<!DOCTYPE html>');
+  doc.write('<html><head>');
+  doc.write('<meta charset="UTF-8">');
+  doc.write('<title>Etiquetas em Lote</title>');
+  doc.write('<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"><\/script>');
+  doc.write('<style>');
+  doc.write('body { margin: 0; padding: 10px; font-family: Arial; }');
+  doc.write('@media print { body { margin: 0; padding: 0; } }');
+  doc.write('</style>');
+  doc.write('</head><body>');
+  doc.write(html);
+  doc.write('</body></html>');
+  doc.close();
 
-        window.print();
-        window.close();
-      </script>
-    </body>
-    </html>
-  `);
-  printWindow.document.close();
+  // Gerar QR codes após carregar o documento
+  setTimeout(() => {
+    itensComMarca.forEach((item, idx) => {
+      const sku = item[colSKU] || '';
+      const qtde = item[colQtde] || '1';
+      const qrText = sku + '-' + qtde + '-' + qrNumbers[idx];
+
+      try {
+        new QRCode(printWindow.document.getElementById('qr' + idx), {
+          text: qrText,
+          width: 80,
+          height: 80,
+          colorDark: '#000000',
+          colorLight: '#ffffff',
+          correctLevel: QRCode.CorrectLevel.H
+        });
+      } catch(e) {
+        console.log('Erro ao gerar QR:', e);
+      }
+    });
+
+    // Abrir impressão
+    setTimeout(() => {
+      printWindow.print();
+    }, 500);
+  }, 1000);
 
   fecharModalExcel();
   showMessage(`✅ ${itensComMarca.length} etiquetas geradas!`, 'success');
