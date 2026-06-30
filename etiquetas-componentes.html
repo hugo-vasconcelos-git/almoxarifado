@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Etiquetas de Componentes - Almoxarifado</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: Arial, sans-serif;
+      background: #f5f5f5;
+      padding: 20px;
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    .header {
+      background: white;
+      padding: 20px;
+      border-radius: 8px;
+      margin-bottom: 20px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+
+    h1 { color: #333; margin-bottom: 5px; }
+    .info { color: #666; font-size: 13px; margin-top: 10px; line-height: 1.6; }
+
+    .config {
+      background: white;
+      padding: 20px;
+      border-radius: 8px;
+      margin-bottom: 20px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 15px;
+    }
+
+    label { display: block; font-weight: bold; margin-bottom: 5px; color: #555; font-size: 13px; }
+    input, select { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 4px; font-size: 14px; }
+    input:focus, select:focus { outline: none; border-color: #3b6ef6; box-shadow: 0 0 0 2px rgba(59,110,246,0.1); }
+
+    .buttons {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+
+    button {
+      background: #3b6ef6;
+      color: white;
+      border: none;
+      padding: 12px 20px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-weight: bold;
+      font-size: 14px;
+      transition: background 0.2s;
+    }
+
+    button:hover { background: #2653d4; }
+    button:disabled { background: #ccc; cursor: not-allowed; }
+    button.danger { background: #e74c3c; }
+    button.danger:hover { background: #c0392b; }
+
+    /* GRID DE ETIQUETAS */
+    .etiquetas-container {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+      gap: 0.35cm;
+      padding: 10px;
+      background: white;
+      border-radius: 8px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+
+    .etiqueta {
+      width: 10cm;
+      height: 6cm;
+      border: 1px solid #333;
+      padding: 5px;
+      font-family: Arial, sans-serif;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      background: white;
+      page-break-after: always;
+    }
+
+    .etiqueta-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid #000;
+      padding-bottom: 3px;
+      margin-bottom: 3px;
+    }
+
+    .etiqueta-codigo {
+      font-size: 16px;
+      font-weight: bold;
+      flex: 1;
+    }
+
+    .etiqueta-info {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+      gap: 5px;
+    }
+
+    .etiqueta-texto {
+      font-size: 11px;
+      flex: 1;
+    }
+
+    .etiqueta-texto div { margin: 2px 0; line-height: 1.2; }
+    .etiqueta-texto strong { display: block; font-size: 9px; color: #666; }
+
+    .qr-code {
+      text-align: center;
+      flex-shrink: 0;
+    }
+
+    .stats {
+      background: #f0f0f0;
+      padding: 10px;
+      border-radius: 4px;
+      font-size: 12px;
+      color: #666;
+      margin-top: 10px;
+      display: none;
+    }
+
+    @page {
+      size: 10cm 6cm;
+      margin: 0;
+      padding: 0;
+    }
+
+    @media print {
+      body {
+        margin: 0;
+        padding: 0;
+        background: white;
+      }
+      .header, .config, .buttons, .stats { display: none; }
+      .etiquetas-container {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 0;
+        padding: 0;
+        background: transparent;
+        box-shadow: none;
+      }
+      .etiqueta {
+        width: 10cm;
+        height: 6cm;
+        margin: 0;
+        page-break-after: always;
+      }
+    }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <div class="header">
+    <h1>🏷️ Etiquetas de Componentes</h1>
+    <div class="info">
+      Gerador simplificado de etiquetas para componentes recebidos.
+      <br><small>⚙️ Configurado para imprimir em impressora Zebra ZD220 (10cm × 6cm). Usar navegador Google Chrome.</small>
+    </div>
+  </div>
+
+  <div class="config">
+    <div>
+      <label for="skuInput">SKU do Componente *</label>
+      <input type="text" id="skuInput" placeholder="Digite o SKU">
+    </div>
+    <div>
+      <label for="descricao">Descrição</label>
+      <input type="text" id="descricao" placeholder="Descrição (auto)" disabled>
+    </div>
+    <div>
+      <label for="quantidade">Quantidade *</label>
+      <input type="number" id="quantidade" placeholder="Ex: 100" min="1" value="1">
+    </div>
+    <div>
+      <label for="um">Unidade de Medida</label>
+      <input type="text" id="um" placeholder="Ex: PC" value="PC">
+    </div>
+  </div>
+
+  <div class="buttons">
+    <button onclick="adicionarEtiqueta()">➕ Adicionar Etiqueta</button>
+    <button onclick="imprimirEtiquetas()">🖨️ Imprimir</button>
+    <button onclick="limparEtiquetas()" class="danger">🗑️ Limpar Tudo</button>
+  </div>
+
+  <div id="stats" class="stats"></div>
+
+  <div id="etiquetasContainer" class="etiquetas-container"></div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script>
+let sb1Data = {};
+let etiquetas = [];
+
+// Carregar SB1 ao abrir página
+window.addEventListener('DOMContentLoaded', () => {
+  const sb1Salvo = localStorage.getItem('sb1Carregado');
+  if (sb1Salvo) {
+    console.log('SB1 já carregado em localStorage');
+  } else {
+    console.log('SB1 não carregado - use a página Etiquetas de Componentes para carregar');
+  }
+});
+
+// Detectar automaticamente QR code no campo SKU
+document.getElementById('skuInput').addEventListener('input', (e) => {
+  const valor = e.target.value.trim();
+
+  if (valor.includes('-')) {
+    const partes = valor.split('-');
+    if (partes.length >= 2 && partes[0].length > 0 && partes[1].length > 0) {
+      const sku = partes[0];
+      const quantidade = partes[1];
+
+      if (!isNaN(quantidade) && quantidade > 0) {
+        document.getElementById('skuInput').value = sku;
+        document.getElementById('quantidade').value = quantidade;
+        document.getElementById('um').focus();
+      }
+    }
+  }
+});
+
+function adicionarEtiqueta() {
+  const sku = document.getElementById('skuInput').value.trim();
+  const desc = document.getElementById('descricao').value.trim();
+  const qtde = parseInt(document.getElementById('quantidade').value) || 1;
+  const um = document.getElementById('um').value.trim() || 'PC';
+
+  if (!sku) {
+    alert('SKU é obrigatório');
+    return;
+  }
+
+  // Adicionar à lista
+  etiquetas.push({ sku, desc, qtde, um });
+
+  // Renderizar
+  renderizarEtiquetas();
+
+  // Limpar formulário
+  document.getElementById('skuInput').value = '';
+  document.getElementById('descricao').value = '';
+  document.getElementById('quantidade').value = '1';
+  document.getElementById('um').value = 'PC';
+  document.getElementById('skuInput').focus();
+}
+
+function renderizarEtiquetas() {
+  const container = document.getElementById('etiquetasContainer');
+  container.innerHTML = '';
+
+  etiquetas.forEach((etiqueta, idx) => {
+    const qrId = `qr-${idx}`;
+    const etiquetaEl = document.createElement('div');
+    etiquetaEl.className = 'etiqueta';
+    etiquetaEl.innerHTML = `
+      <div class="etiqueta-header">
+        <div class="etiqueta-codigo">${etiqueta.sku}</div>
+      </div>
+      <div class="etiqueta-info">
+        <div class="etiqueta-texto">
+          <strong>Desc:</strong>
+          <div>${etiqueta.desc || '-'}</div>
+          <strong style="margin-top: 2px;">Qtde:</strong>
+          <div>${etiqueta.qtde} ${etiqueta.um}</div>
+        </div>
+        <div class="qr-code" id="${qrId}" style="width: 45mm; height: 45mm;"></div>
+      </div>
+      <button onclick="removerEtiqueta(${idx})" style="width: 100%; margin-top: 5px; padding: 5px; font-size: 12px;">✕ Remover</button>
+    `;
+    container.appendChild(etiquetaEl);
+
+    // Gerar QR Code
+    setTimeout(() => {
+      const qrText = `${etiqueta.sku}-${etiqueta.qtde}`;
+      new QRCode(document.getElementById(qrId), {
+        text: qrText,
+        width: 100,
+        height: 100,
+        colorDark: '#000000',
+        colorLight: '#ffffff',
+        correctLevel: QRCode.CorrectLevel.H
+      });
+    }, 100);
+  });
+
+  // Atualizar stats
+  const stats = document.getElementById('stats');
+  if (etiquetas.length > 0) {
+    stats.textContent = `✓ ${etiquetas.length} etiqueta(s) preparada(s)`;
+    stats.style.display = 'block';
+  } else {
+    stats.style.display = 'none';
+  }
+}
+
+function removerEtiqueta(idx) {
+  etiquetas.splice(idx, 1);
+  renderizarEtiquetas();
+}
+
+function limparEtiquetas() {
+  if (confirm('Deseja limpar todas as etiquetas?')) {
+    etiquetas = [];
+    renderizarEtiquetas();
+  }
+}
+
+function imprimirEtiquetas() {
+  if (etiquetas.length === 0) {
+    alert('Adicione etiquetas para imprimir');
+    return;
+  }
+  window.print();
+}
+</script>
+
+</body>
+</html>
