@@ -403,6 +403,35 @@ function goTab(i) {
 }
 
 /* ══════════════════════════════════
+   FUNÇÕES DE SELETOR
+══════════════════════════════════ */
+function atualizarPrateleiras(rua) {
+  const sel = document.getElementById('selPrateleira');
+  sel.innerHTML = '<option value="">Selecione prateleira...</option>';
+  if (rua === 'SB') {
+    for (let i = 1; i <= 27; i++) {
+      const opt = document.createElement('option');
+      opt.value = i;
+      opt.textContent = i;
+      sel.appendChild(opt);
+    }
+    ['A', 'B'].forEach(l => {
+      const opt = document.createElement('option');
+      opt.value = l;
+      opt.textContent = l;
+      sel.appendChild(opt);
+    });
+  } else {
+    for (let i = 1; i <= 200; i++) {
+      const opt = document.createElement('option');
+      opt.value = i;
+      opt.textContent = i;
+      sel.appendChild(opt);
+    }
+  }
+}
+
+/* ══════════════════════════════════
    INIT SELETOR
 ══════════════════════════════════ */
 window.addEventListener('DOMContentLoaded', () => {
@@ -418,30 +447,6 @@ window.addEventListener('DOMContentLoaded', () => {
 
   // Select de prateleiras (dinâmico baseado na rua)
   const sel = document.getElementById('selPrateleira');
-  function atualizarPrateleiras(rua) {
-    sel.innerHTML = '<option value="">Selecione prateleira...</option>';
-    if (rua === 'SB') {
-      for (let i = 1; i <= 27; i++) {
-        const opt = document.createElement('option');
-        opt.value = i;
-        opt.textContent = i;
-        sel.appendChild(opt);
-      }
-      ['A', 'B'].forEach(l => {
-        const opt = document.createElement('option');
-        opt.value = l;
-        opt.textContent = l;
-        sel.appendChild(opt);
-      });
-    } else {
-      for (let i = 1; i <= 200; i++) {
-        const opt = document.createElement('option');
-        opt.value = i;
-        opt.textContent = i;
-        sel.appendChild(opt);
-      }
-    }
-  }
   // Preencher com padrão A-Z (prateleiras 1-200)
   atualizarPrateleiras('A');
   sel.addEventListener('change', verificarBtnAbrir);
