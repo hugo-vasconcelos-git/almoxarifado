@@ -1028,11 +1028,6 @@ function abrirEndereco(rua, prat) {
   beepAbertura();
   atualizarSinalizador('open');
   showToast(`📂 RUA ${rua} · Prat. ${prat} aberta`, 'ok');
-
-  // Ativar modo leitor automaticamente após abrir endereço
-  setTimeout(() => {
-    ativarLeitorUsb();
-  }, 300);
 }
 
 function fecharEndereco(mudarAba = true) {
