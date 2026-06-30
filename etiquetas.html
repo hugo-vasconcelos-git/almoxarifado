@@ -56,33 +56,35 @@
 
     .etiquetas {
       display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 5px;
+      grid-template-columns: repeat(4, 5cm);
+      gap: 0;
       margin-top: 20px;
       max-width: 29.7cm;
     }
     .etiqueta {
       border: 1px solid #ddd;
-      padding: 4px;
+      padding: 3px;
       display: flex;
       align-items: center;
-      gap: 8px;
+      gap: 6px;
       background: white;
       page-break-inside: avoid;
       break-inside: avoid;
       box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-      height: 80px;
+      height: 2cm;
+      width: 5cm;
     }
     .etiqueta.estante {
-      height: 80px;
-      padding: 4px;
-      gap: 8px;
+      height: 2cm;
+      width: 5cm;
+      padding: 3px;
+      gap: 6px;
     }
     .etiqueta.pallete {
-      height: 8.5cm;
-      width: 11cm;
-      padding: 8px;
-      gap: 8px;
+      height: 2cm;
+      width: 5cm;
+      padding: 3px;
+      gap: 6px;
     }
     .etiqueta-esquerda, .etiqueta-direita {
       display: flex;
@@ -93,24 +95,24 @@
       text-align: center;
     }
     .etiqueta h2 {
-      font-size: 28px;
+      font-size: 16px;
       margin: 0;
       color: #3b6ef6;
       font-weight: bold;
       line-height: 1;
     }
     .etiqueta.pallete h2 {
-      font-size: 45px;
+      font-size: 16px;
     }
     .etiqueta p {
-      font-size: 14px;
+      font-size: 10px;
       color: #333;
       margin: 0;
       line-height: 1;
       font-weight: 600;
     }
     .etiqueta.pallete p {
-      font-size: 45px;
+      font-size: 10px;
     }
     .qr-code {
       display: flex;
