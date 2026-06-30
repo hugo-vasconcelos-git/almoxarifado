@@ -315,7 +315,8 @@ window.addEventListener('DOMContentLoaded', () => {
 
   const sa2Carregado = localStorage.getItem('sa2Carregado');
   if (!sa2Carregado) {
-    document.getElementById('modalSA2').style.display = 'flex';
+    // Tentar carregar automaticamente do servidor
+    carregarSA2Auto();
   } else {
     sa2Data = JSON.parse(localStorage.getItem('sa2Data'));
     preencherFornecedores();
@@ -323,6 +324,32 @@ window.addEventListener('DOMContentLoaded', () => {
   carregarDadosSB1();
   document.getElementById('data').valueAsDate = new Date();
 });
+
+// Carregar SA2 automaticamente do servidor
+function carregarSA2Auto() {
+  fetch('SA2_mobile.json')
+    .then(r => r.json())
+    .then(d => {
+      // Decodificar Base64 se estiver ofuscado
+      let dados = d;
+      if (d.data && typeof d.data === 'string') {
+        dados = JSON.parse(atob(d.data));
+      }
+
+      sa2Data = Array.isArray(dados) ? dados : Object.values(dados);
+
+      // Salvar em localStorage
+      localStorage.setItem('sa2Data', JSON.stringify(sa2Data));
+      localStorage.setItem('sa2Carregado', 'true');
+
+      console.log('SA2 carregado automaticamente:', sa2Data.length, 'fornecedores');
+      preencherFornecedores();
+    })
+    .catch(e => {
+      console.warn('Erro ao carregar SA2 automaticamente, mostrando modal:', e);
+      document.getElementById('modalSA2').style.display = 'flex';
+    });
+}
 
 // Carregar SB1
 function carregarDadosSB1() {
