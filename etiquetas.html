@@ -224,24 +224,26 @@
     </div>
 
     <div>
-      <label>Rua Inicial (A-Z):</label>
+      <label>Rua Inicial (A-Z, SB):</label>
       <select id="ruaInicial">
         <option selected>A</option><option>B</option><option>C</option><option>D</option><option>E</option>
         <option>F</option><option>G</option><option>H</option><option>I</option><option>J</option>
         <option>K</option><option>L</option><option>M</option><option>N</option><option>O</option>
         <option>P</option><option>Q</option><option>R</option><option>S</option><option>T</option>
         <option>U</option><option>V</option><option>W</option><option>X</option><option>Y</option><option>Z</option>
+        <option>SB</option>
       </select>
     </div>
 
     <div>
-      <label>Rua Final (A-Z):</label>
+      <label>Rua Final (A-Z, SB):</label>
       <select id="ruaFinal">
         <option>A</option><option>B</option><option>C</option><option>D</option><option>E</option>
         <option>F</option><option>G</option><option>H</option><option>I</option><option>J</option>
         <option>K</option><option>L</option><option>M</option><option>N</option><option>O</option>
         <option>P</option><option>Q</option><option>R</option><option>S</option><option>T</option>
-        <option>U</option><option>V</option><option>W</option><option>X</option><option>Y</option><option selected>Z</option>
+        <option>U</option><option>V</option><option>W</option><option>X</option><option>Y</option><option>Z</option>
+        <option selected>SB</option>
       </select>
     </div>
 
@@ -269,7 +271,7 @@
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 <script>
-const RUAS = ['A','B','C','D','E','F','G','H','I','J','K','L','M','N','O','P','Q','R','S','T','U','V','W','X','Y','Z'];
+const RUAS = ['A','B','C','D','E','F','G','H','I','J','K','L','M','N','O','P','Q','R','S','T','U','V','W','X','Y','Z','SB'];
 
 function gerarEtiquetas() {
   const ruaInicial = document.getElementById('ruaInicial').value;
@@ -296,43 +298,58 @@ function gerarEtiquetas() {
   const tipo = document.getElementById('tipoEtiqueta').value;
   const qrSize = tipo === 'pallete' ? 175 : 75;
 
+  function gerarEtiqueta(rua, prat, pratDisplay) {
+    const codigo = `${rua}${pratDisplay}`;
+    const etiqueta = document.createElement('div');
+    etiqueta.className = `etiqueta ${tipo}`;
+
+    const qrId = `qr-${codigo}`;
+    etiqueta.innerHTML = `
+      <div class="etiqueta-esquerda">
+        <h2>${rua}</h2>
+        <p>Prat ${prat}</p>
+      </div>
+      <div class="qr-code" id="${qrId}"></div>
+      <div class="etiqueta-direita">
+        <p style="font-size:28px; font-weight:bold;">${codigo}</p>
+      </div>
+    `;
+
+    container.appendChild(etiqueta);
+
+    // Gerar QR Code após adicionar ao DOM
+    setTimeout(() => {
+      if (document.getElementById(qrId)) {
+        new QRCode(document.getElementById(qrId), {
+          text: codigo,
+          width: qrSize,
+          height: qrSize,
+          colorDark: '#000000',
+          colorLight: '#ffffff',
+          correctLevel: QRCode.CorrectLevel.H
+        });
+      }
+    }, 10);
+
+    count++;
+  }
+
   for (let i = idxRuaIni; i <= idxRuaFim; i++) {
     const rua = RUAS[i];
-    for (let prat = pratInicial; prat <= pratFinal; prat++) {
-      const codigo = `${rua}${String(prat).padStart(2, '0')}`;
 
-      const etiqueta = document.createElement('div');
-      etiqueta.className = `etiqueta ${tipo}`;
-
-      const qrId = `qr-${codigo}`;
-      etiqueta.innerHTML = `
-        <div class="etiqueta-esquerda">
-          <h2>${rua}</h2>
-          <p>Prat ${prat}</p>
-        </div>
-        <div class="qr-code" id="${qrId}"></div>
-        <div class="etiqueta-direita">
-          <p style="font-size:28px; font-weight:bold;">${codigo}</p>
-        </div>
-      `;
-
-      container.appendChild(etiqueta);
-
-      // Gerar QR Code após adicionar ao DOM
-      setTimeout(() => {
-        if (document.getElementById(qrId)) {
-          new QRCode(document.getElementById(qrId), {
-            text: codigo,
-            width: qrSize,
-            height: qrSize,
-            colorDark: '#000000',
-            colorLight: '#ffffff',
-            correctLevel: QRCode.CorrectLevel.H
-          });
-        }
-      }, 10);
-
-      count++;
+    if (rua === 'SB') {
+      // Para SB: gerar 1-27 e depois A-B
+      for (let prat = 1; prat <= 27; prat++) {
+        gerarEtiqueta('SB', prat, String(prat).padStart(2, '0'));
+      }
+      ['A', 'B'].forEach(l => {
+        gerarEtiqueta('SB', l, l);
+      });
+    } else {
+      // Para A-Z: usar prateleiras informadas
+      for (let prat = pratInicial; prat <= pratFinal; prat++) {
+        gerarEtiqueta(rua, prat, String(prat).padStart(2, '0'));
+      }
     }
   }
 
