@@ -187,19 +187,39 @@
 </head>
 <body>
 
-<!-- MODAL UPLOAD SA2 -->
-<div id="modalSA2" style="position:fixed;inset:0;background:rgba(0,0,0,0.8);z-index:1000;display:none;flex-direction:column;align-items:center;justify-content:center;padding:20px;">
-  <div style="background:white;border-radius:16px;padding:28px;width:100%;max-width:340px;display:flex;flex-direction:column;gap:16px;">
-    <div style="font-size:18px;font-weight:700;color:#333;">📦 Carregar Fornecedores</div>
-    <div style="font-size:13px;color:#666;line-height:1.5;">Selecione o arquivo SA2_mobile.json para carregar a lista de fornecedores:</div>
-    <div style="background:#f5f5f5;border:2px dashed #3b6ef6;border-radius:8px;padding:20px;text-align:center;cursor:pointer;" onclick="document.getElementById('sa2FileInput').click()">
-      <div style="font-size:28px;margin-bottom:8px;">📁</div>
-      <div style="font-weight:600;color:#333;">Clique para selecionar</div>
-      <div style="font-size:11px;color:#999;margin-top:8px;">ou arraste o arquivo aqui</div>
+<!-- MODAL CARREGAMENTO DE DADOS -->
+<div id="modalDados" style="position:fixed;inset:0;background:rgba(0,0,0,0.8);z-index:1000;display:none;flex-direction:column;align-items:center;justify-content:center;padding:20px;">
+  <div style="background:white;border-radius:16px;padding:28px;width:100%;max-width:500px;display:flex;flex-direction:column;gap:20px;">
+    <div style="font-size:20px;font-weight:700;color:#333;">📂 Carregar Dados Iniciais</div>
+    <div style="font-size:13px;color:#666;line-height:1.6;">
+      Selecione os arquivos <strong>SB1.json</strong> (produtos) e <strong>SA2.json</strong> (fornecedores) do seu computador:
     </div>
-    <input type="file" id="sa2FileInput" accept=".json" style="display:none;" onchange="carregarSA2Upload(event)">
-    <div id="sa2Status" style="font-size:12px;color:#666;text-align:center;"></div>
-    <button id="sa2Btn" onclick="confirmarSA2()" disabled style="background:#ccc;cursor:not-allowed;color:white;border:none;padding:10px;border-radius:4px;font-weight:bold;">Continuar</button>
+
+    <!-- Upload SB1 -->
+    <div style="border:2px solid #e0e0e0;border-radius:8px;padding:16px;background:#f9f9f9;">
+      <div style="font-size:12px;font-weight:600;color:#555;margin-bottom:8px;">📦 SB1.json (Produtos)</div>
+      <div style="background:#f5f5f5;border:2px dashed #3b6ef6;border-radius:8px;padding:16px;text-align:center;cursor:pointer;" onclick="document.getElementById('sb1FileInput').click()" id="sb1DropZone">
+        <div style="font-size:24px;margin-bottom:6px;" id="sb1Icon">📁</div>
+        <div style="font-weight:600;color:#333;font-size:13px;" id="sb1Text">Selecione SB1.json</div>
+        <div style="font-size:11px;color:#999;margin-top:4px;">ou arraste aqui</div>
+      </div>
+      <input type="file" id="sb1FileInput" accept=".json" style="display:none;" onchange="carregarArquivo(event, 'sb1')">
+      <div id="sb1Status" style="font-size:12px;color:#666;margin-top:8px;text-align:center;"></div>
+    </div>
+
+    <!-- Upload SA2 -->
+    <div style="border:2px solid #e0e0e0;border-radius:8px;padding:16px;background:#f9f9f9;">
+      <div style="font-size:12px;font-weight:600;color:#555;margin-bottom:8px;">🏭 SA2.json (Fornecedores)</div>
+      <div style="background:#f5f5f5;border:2px dashed #3b6ef6;border-radius:8px;padding:16px;text-align:center;cursor:pointer;" onclick="document.getElementById('sa2FileInput').click()" id="sa2DropZone">
+        <div style="font-size:24px;margin-bottom:6px;" id="sa2Icon">📁</div>
+        <div style="font-weight:600;color:#333;font-size:13px;" id="sa2Text">Selecione SA2.json</div>
+        <div style="font-size:11px;color:#999;margin-top:4px;">ou arraste aqui</div>
+      </div>
+      <input type="file" id="sa2FileInput" accept=".json" style="display:none;" onchange="carregarArquivo(event, 'sa2')">
+      <div id="sa2Status" style="font-size:12px;color:#666;margin-top:8px;text-align:center;"></div>
+    </div>
+
+    <button id="confirmarDadosBtn" onclick="confirmarCarregamentoDados()" disabled style="background:#ccc;cursor:not-allowed;color:white;border:none;padding:12px;border-radius:4px;font-weight:bold;font-size:14px;">✓ Continuar</button>
   </div>
 </div>
 
@@ -256,7 +276,7 @@
       <button onclick="gerarEtiqueta()">🏷️ Gerar Etiqueta</button>
       <button onclick="imprimirEtiqueta()" id="btnImprimir" disabled>🖨️ Imprimir</button>
       <button onclick="limparFormulario()" style="background: #6c757d;">🗑️ Limpar</button>
-      <button onclick="abrirModalSA2()" style="background: #f5a623;">📦 Trocar Fornecedores</button>
+      <button onclick="abrirModalDados()" style="background: #f5a623;">📂 Carregar Dados</button>
     </div>
   </div>
 
@@ -305,6 +325,10 @@ let sb1Data = {};
 let sa2Data = {};
 let numeroIncremental = 990001;
 
+// Rastrear arquivos carregados
+let sb1Carregado = false;
+let sa2Carregado = false;
+
 // Carregar dados ao abrir página
 window.addEventListener('DOMContentLoaded', () => {
   // Restaurar número incremental
@@ -313,59 +337,57 @@ window.addEventListener('DOMContentLoaded', () => {
     numeroIncremental = parseInt(numSalvo);
   }
 
-  const sa2Carregado = localStorage.getItem('sa2Carregado');
-  if (!sa2Carregado) {
-    // Tentar carregar automaticamente do servidor
-    carregarSA2Auto();
-  } else {
+  // Verificar se já têm dados em localStorage
+  const sb1Salvo = localStorage.getItem('sb1Carregado');
+  const sa2Salvo = localStorage.getItem('sa2Carregado');
+
+  if (sb1Salvo && sa2Salvo) {
+    sb1Data = JSON.parse(localStorage.getItem('sb1Data'));
     sa2Data = JSON.parse(localStorage.getItem('sa2Data'));
     preencherFornecedores();
+  } else {
+    // Mostrar modal para carregar arquivos
+    document.getElementById('modalDados').style.display = 'flex';
+    configurarDragDrop();
   }
+
   carregarDadosSB1();
   document.getElementById('data').valueAsDate = new Date();
 });
 
-// Carregar SA2 automaticamente do servidor
-function carregarSA2Auto() {
-  fetch('SA2_mobile.json')
-    .then(r => r.json())
-    .then(d => {
-      // Decodificar Base64 se estiver ofuscado
-      let dados = d;
-      if (d.data && typeof d.data === 'string') {
-        dados = JSON.parse(atob(d.data));
-      }
+// Configurar drag and drop
+function configurarDragDrop() {
+  const zones = [
+    { id: 'sb1DropZone', input: 'sb1FileInput', tipo: 'sb1' },
+    { id: 'sa2DropZone', input: 'sa2FileInput', tipo: 'sa2' }
+  ];
 
-      sa2Data = Array.isArray(dados) ? dados : Object.values(dados);
+  zones.forEach(zone => {
+    const el = document.getElementById(zone.id);
+    if (!el) return;
 
-      // Salvar em localStorage
-      localStorage.setItem('sa2Data', JSON.stringify(sa2Data));
-      localStorage.setItem('sa2Carregado', 'true');
-
-      console.log('SA2 carregado automaticamente:', sa2Data.length, 'fornecedores');
-      preencherFornecedores();
-    })
-    .catch(e => {
-      console.warn('Erro ao carregar SA2 automaticamente, mostrando modal:', e);
-      document.getElementById('modalSA2').style.display = 'flex';
+    el.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      el.style.background = '#e8f0ff';
     });
-}
 
-// Carregar SB1
-function carregarDadosSB1() {
-  fetch('SB1_mobile.json')
-    .then(r => r.json())
-    .then(d => {
-      if (d.data) {
-        sb1Data = JSON.parse(atob(d.data));
-        console.log('SB1 carregado:', Object.keys(sb1Data).length);
+    el.addEventListener('dragleave', () => {
+      el.style.background = '#f5f5f5';
+    });
+
+    el.addEventListener('drop', (e) => {
+      e.preventDefault();
+      el.style.background = '#f5f5f5';
+      if (e.dataTransfer.files.length > 0) {
+        document.getElementById(zone.input).files = e.dataTransfer.files;
+        carregarArquivo({ target: { files: e.dataTransfer.files } }, zone.tipo);
       }
-    })
-    .catch(e => console.error('Erro ao carregar SB1:', e));
+    });
+  });
 }
 
-// Upload de arquivo SA2
-function carregarSA2Upload(event) {
+// Carregar arquivo (SB1 ou SA2)
+function carregarArquivo(event, tipo) {
   const file = event.target.files[0];
   if (!file) return;
 
@@ -380,39 +402,68 @@ function carregarSA2Upload(event) {
         dados = JSON.parse(atob(conteudo.data));
       }
 
-      sa2Data = Array.isArray(dados) ? dados : Object.values(dados);
+      if (tipo === 'sb1') {
+        sb1Data = Array.isArray(dados) ? dados : Object.values(dados);
+        localStorage.setItem('sb1Data', JSON.stringify(sb1Data));
+        localStorage.setItem('sb1Carregado', 'true');
+        sb1Carregado = true;
+        document.getElementById('sb1Status').textContent = `✅ ${Object.keys(sb1Data).length || sb1Data.length} produtos carregados`;
+        document.getElementById('sb1Icon').textContent = '✓';
+        document.getElementById('sb1Text').textContent = 'SB1.json carregado';
+      } else if (tipo === 'sa2') {
+        sa2Data = Array.isArray(dados) ? dados : Object.values(dados);
+        localStorage.setItem('sa2Data', JSON.stringify(sa2Data));
+        localStorage.setItem('sa2Carregado', 'true');
+        sa2Carregado = true;
+        document.getElementById('sa2Status').textContent = `✅ ${sa2Data.length} fornecedores carregados`;
+        document.getElementById('sa2Icon').textContent = '✓';
+        document.getElementById('sa2Text').textContent = 'SA2.json carregado';
+      }
 
-      // Salvar em localStorage
-      localStorage.setItem('sa2Data', JSON.stringify(sa2Data));
-      localStorage.setItem('sa2Carregado', 'true');
+      // Habilitar botão se ambos carregados
+      if (sb1Carregado && sa2Carregado) {
+        const btn = document.getElementById('confirmarDadosBtn');
+        btn.disabled = false;
+        btn.style.background = '#3b6ef6';
+        btn.style.cursor = 'pointer';
+      }
 
-      document.getElementById('sa2Status').textContent = `✅ Carregado ${sa2Data.length} fornecedores`;
-      document.getElementById('sa2Btn').disabled = false;
-      document.getElementById('sa2Btn').style.background = '#3b6ef6';
-      document.getElementById('sa2Btn').style.cursor = 'pointer';
+      console.log(`${tipo.toUpperCase()} carregado com sucesso`);
     } catch (erro) {
-      document.getElementById('sa2Status').textContent = '❌ Erro ao carregar arquivo';
-      console.error(erro);
+      const statusEl = document.getElementById(`${tipo}Status`);
+      statusEl.textContent = '❌ Erro ao carregar arquivo';
+      console.error(`Erro ao carregar ${tipo}:`, erro);
     }
   };
   reader.readAsText(file);
 }
 
-// Abrir modal novamente
-function abrirModalSA2() {
-  document.getElementById('modalSA2').style.display = 'flex';
-  document.getElementById('sa2Status').textContent = '';
-  document.getElementById('sa2FileInput').value = '';
-}
-
-// Confirmar e fechar modal
-function confirmarSA2() {
-  if (sa2Data.length === 0) {
-    document.getElementById('sa2Status').textContent = '❌ Nenhum arquivo carregado';
+// Confirmar carregamento e fechar modal
+function confirmarCarregamentoDados() {
+  if (!sb1Carregado || !sa2Carregado) {
     return;
   }
-  document.getElementById('modalSA2').style.display = 'none';
+  document.getElementById('modalDados').style.display = 'none';
   preencherFornecedores();
+}
+
+// Abrir modal para trocar dados
+function abrirModalDados() {
+  sb1Carregado = false;
+  sa2Carregado = false;
+  document.getElementById('sb1Status').textContent = '';
+  document.getElementById('sa2Status').textContent = '';
+  document.getElementById('sb1FileInput').value = '';
+  document.getElementById('sa2FileInput').value = '';
+  document.getElementById('sb1Icon').textContent = '📁';
+  document.getElementById('sa2Icon').textContent = '📁';
+  document.getElementById('sb1Text').textContent = 'Selecione SB1.json';
+  document.getElementById('sa2Text').textContent = 'Selecione SA2.json';
+  document.getElementById('confirmarDadosBtn').disabled = true;
+  document.getElementById('confirmarDadosBtn').style.background = '#ccc';
+  document.getElementById('confirmarDadosBtn').style.cursor = 'not-allowed';
+  document.getElementById('modalDados').style.display = 'flex';
+  configurarDragDrop();
 }
 
 // Preencher dropdown de fornecedores (coluna a2_nreduz)
