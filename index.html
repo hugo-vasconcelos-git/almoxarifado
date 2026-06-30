@@ -377,7 +377,7 @@
 /* ══════════════════════════════════
    STATE
 ══════════════════════════════════ */
-const RUAS = ['A','B','C','D','E','F','G','H','I','J','K','L','M','N','O','P','Q','R','S','T','U','V','W','X','Y','Z','SB'];
+const RUAS = ['A','B','C','D','E','F','G','H','I','J','K','L','M','N','O','P','Q','R','S','T','U','V','W','X','Y','Z','SB','SD'];
 let zxingReader = null;
 
 let fase        = 'idle';
@@ -425,6 +425,14 @@ function atualizarPrateleiras(rua) {
       sel.appendChild(opt);
     });
     console.log('✓ Prateleiras SB atualizadas: 01-27, A, B');
+  } else if (rua === 'SD') {
+    for (let i = 1; i <= 4; i++) {
+      const opt = document.createElement('option');
+      opt.value = i;
+      opt.textContent = String(i).padStart(2, '0');
+      sel.appendChild(opt);
+    }
+    console.log('✓ Prateleiras SD atualizadas: 01-04');
   } else {
     for (let i = 1; i <= 200; i++) {
       const opt = document.createElement('option');
@@ -861,7 +869,7 @@ function abrirCameraEndereco() {
 }
 
 function processarEndereco(codigo) {
-  // Formato esperado: A01, B05, L54, SB1, SB27, SBA, SBB, etc
+  // Formato esperado: A01, B05, L54, SB1, SB27, SBA, SBB, SD01-SD04, etc
   let match = codigo.match(/^(SB)([1-9]|1[0-9]|2[0-7]|[AB])$/i);
   let rua, prat, pratDisplay;
 
@@ -870,6 +878,11 @@ function processarEndereco(codigo) {
     rua = match[1].toUpperCase();
     pratDisplay = match[2].toUpperCase();
     prat = pratDisplay; // mantém como string ou número
+  } else if ((match = codigo.match(/^(SD)([1-4])$/i))) {
+    // Endereço SD (prateleiras 1-4)
+    rua = match[1].toUpperCase();
+    prat = parseInt(match[2]);
+    pratDisplay = String(prat).padStart(2, '0');
   } else {
     // Ruas A-Z (prateleiras 1-200)
     match = codigo.match(/^([A-Z])(\d{1,3})$/);
