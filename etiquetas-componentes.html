@@ -703,10 +703,10 @@ function importarExcel() {
   const colunas = Object.keys(excelDados[0]);
   const colSKU = colunas.find(col => col.toUpperCase().includes('CÓDIGO') || col.toUpperCase().includes('SKU'));
   const colQtde = colunas.find(col => col.toUpperCase().includes('QTD') || col.toUpperCase().includes('QUANTIDADE'));
-  const colLocal = colunas.find(col => col.toUpperCase().includes('LOCAL') || col.toUpperCase().includes('LOCALIZACAO'));
+  const colEndereco = colunas.find(col => col.toUpperCase().includes('ENDEREÇO') || col.toUpperCase().includes('ENDERECO'));
 
-  if (!colSKU || !colQtde) {
-    showMessage('❌ Colunas SKU ou Quantidade não encontradas', 'error');
+  if (!colSKU || !colQtde || !colEndereco) {
+    showMessage('❌ Colunas obrigatórias não encontradas (SKU, Quantidade, Endereço)', 'error');
     return;
   }
 
@@ -715,7 +715,7 @@ function importarExcel() {
   excelDados.forEach(reg => {
     const sku = reg[colSKU];
     const qtde = parseInt(reg[colQtde]) || 1;
-    const localizacao = reg[colLocal] || 'N/A';
+    const localizacao = reg[colEndereco] || 'N/A';
 
     if (sku) {
       // Buscar dados do SB1
