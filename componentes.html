@@ -306,13 +306,9 @@
       <button onclick="gerarEtiqueta()">🏷️ Gerar Etiqueta</button>
       <button onclick="imprimirEtiqueta()" id="btnImprimir" disabled>🖨️ Imprimir</button>
       <button onclick="limparFormulario()" style="background: #6c757d;">🗑️ Limpar</button>
-      <button id="btnLerUSB" onclick="ativarLeituraUSB()" style="background: #e74c3c;">📱 Bipar Etiqueta</button>
       <button onclick="abrirModalDados()" style="background: #f5a623;">📂 Carregar Dados</button>
       <button onclick="abrirModalImportarExcel()" style="background: #27ae60;">📊 Importar Excel</button>
     </div>
-
-    <!-- Input hidden para capturar leitura do leitor USB -->
-    <input type="text" id="leitorUSB" style="position: absolute; left: -9999px;" autocomplete="off">
   </div>
 
   <div class="preview-section">
@@ -962,48 +958,29 @@ function gerarEtiquetasEmLote() {
   showMessage(`✅ ${itensComMarca.length} etiquetas geradas!`, 'success');
 }
 
-// ─── LEITURA USB ───
-let modoLeituraUSBAtivo = false;
+// ─── DETECÇÃO AUTOMÁTICA DE QR CODE ───
+document.getElementById('skuInput').addEventListener('input', (e) => {
+  const valor = e.target.value.trim();
 
-function ativarLeituraUSB() {
-  modoLeituraUSBAtivo = !modoLeituraUSBAtivo;
-  const btn = document.getElementById('btnLerUSB');
-  const input = document.getElementById('leitorUSB');
+  // Verifica se o valor contém "-" (padrão SKU-quantidade)
+  if (valor.includes('-')) {
+    const partes = valor.split('-');
 
-  if (modoLeituraUSBAtivo) {
-    btn.style.background = '#27ae60';
-    btn.textContent = '📱 Aguardando leitura...';
-    input.focus();
-    showMessage('📱 Leitor USB ativo. Bipe a etiqueta agora.', 'success');
-  } else {
-    btn.style.background = '#e74c3c';
-    btn.textContent = '📱 Bipar Etiqueta';
-    input.blur();
-    showMessage('Leitura cancelada', 'info');
-  }
-}
+    // Deve ter pelo menos 2 partes: SKU e quantidade
+    if (partes.length >= 2 && partes[0].length > 0 && partes[1].length > 0) {
+      const sku = partes[0];
+      const quantidade = partes[1];
 
-document.getElementById('leitorUSB').addEventListener('keypress', (e) => {
-  if (e.key === 'Enter' && modoLeituraUSBAtivo) {
-    const qrCode = e.target.value.trim();
-    processarQRCodeEtiqueta(qrCode);
-    e.target.value = '';
+      // Validar se quantidade é um número
+      if (!isNaN(quantidade) && quantidade > 0) {
+        processarQRCodeAutomaticamente(sku, quantidade);
+      }
+    }
   }
 });
 
-function processarQRCodeEtiqueta(qrCode) {
-  // Formato esperado: SKU-quantidade-numero (ex: 31610172400100-5000-990001)
-  const partes = qrCode.split('-');
-
-  if (partes.length < 2) {
-    showMessage('❌ QR Code inválido. Formato esperado: SKU-quantidade-numero', 'error');
-    return;
-  }
-
-  const sku = partes[0];
-  const quantidade = partes[1];
-
-  // Preencher SKU
+function processarQRCodeAutomaticamente(sku, quantidade) {
+  // Preencher SKU (sem a quantidade)
   document.getElementById('skuInput').value = sku;
 
   // Buscar dados do SKU se SB1 está carregado
@@ -1020,12 +997,8 @@ function processarQRCodeEtiqueta(qrCode) {
   // Mostrar mensagem de sucesso
   showMessage(`✅ Etiqueta lida: SKU ${sku} | Qtde: ${quantidade}`, 'success');
 
-  // Desativar modo leitura
-  modoLeituraUSBAtivo = false;
-  const btn = document.getElementById('btnLerUSB');
-  btn.style.background = '#e74c3c';
-  btn.textContent = '📱 Bipar Etiqueta';
-  document.getElementById('leitorUSB').blur();
+  // Focar no próximo campo (fornecedor)
+  document.getElementById('fornecedor').focus();
 }
 
 // CSS para impressão
