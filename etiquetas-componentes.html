@@ -424,7 +424,7 @@
 <script>
 let sb1Data = {};
 let etiquetas = [];
-let numeroSequencial = 1000001;
+let numeroSequencial = 1;
 
 // Carregar SB1 ao abrir página
 window.addEventListener('DOMContentLoaded', () => {
@@ -538,8 +538,8 @@ function adicionarEtiqueta() {
   const produto = sb1Data[sku] || {};
   const um = produto.um || 'PC';
 
-  // Criar QR code: SKU-quantidade-numero
-  const qrText = `${sku}-${quantidade}-${numeroSequencial}`;
+  // Criar QR code: SKU-quantidade-numero (com 3 dígitos: 001, 002...)
+  const qrText = `${sku}-${quantidade}-${String(numeroSequencial).padStart(3, '0')}`;
 
   etiquetas.push({
     sku,
@@ -722,7 +722,7 @@ function importarExcel() {
       const produto = sb1Data[sku] || {};
       const um = produto.um || 'PC';
 
-      const qrText = `${sku}-${qtde}-${numeroSequencial}`;
+      const qrText = `${sku}-${qtde}-${String(numeroSequencial).padStart(3, '0')}`;
 
       etiquetas.push({
         sku,
