@@ -317,15 +317,16 @@
       <div id="etiqueta" class="etiqueta">
         <div class="etiqueta-header">AUDAX ELECTRONICS</div>
 
-        <div class="qr-barcode-container" style="justify-content: center;">
-          <div id="qrCode" style="transform: scale(1.3); transform-origin: center;"></div>
+        <div style="display: flex; gap: 15px; margin: 15px 0; align-items: flex-start;">
+          <div id="qrCode" style="flex-shrink: 0;"></div>
+          <div style="flex: 1;">
+            <div class="etiqueta-row">
+              <span class="etiqueta-label">SKU:</span>
+              <span class="etiqueta-value" id="etiq-sku"></span>
+            </div>
+            <div style="font-size: 11px; margin-bottom: 8px;" id="etiq-desc"></div>
+          </div>
         </div>
-
-        <div class="etiqueta-row">
-          <span class="etiqueta-label">SKU:</span>
-          <span class="etiqueta-value" id="etiq-sku"></span>
-        </div>
-        <div style="font-size: 11px; margin-bottom: 8px;" id="etiq-desc"></div>
 
         <div style="border-top: 1px solid #999; padding-top: 8px; margin-top: 8px;">
           <div class="etiqueta-row">
@@ -388,91 +389,11 @@ window.addEventListener('DOMContentLoaded', () => {
   document.getElementById('data').valueAsDate = new Date();
 });
 
-// Tentar carregar arquivos do diretório cloud (Z:\COMUM\ETIQUETA\cloud)
+// Tentar carregar arquivos do diretório cloud
+// Nota: Navegadores não conseguem acessar caminhos locais (Z:\...) por segurança
+// Portanto, apenas mostramos o modal para upload manual
 function tentarCarregarDoCloud() {
-  const caminhos = [
-    'file:///Z:/COMUM/ETIQUETA/cloud/SB1.json',
-    'file:///Z:/COMUM/ETIQUETA/cloud/SA2.json'
-  ];
-
-  let sb1Encontrado = false;
-  let sa2Encontrado = false;
-  let tentativas = 0;
-  const totalTentativas = 2;
-
-  // Tentar SB1
-  fetch(caminhos[0])
-    .then(r => {
-      if (r.ok) return r.json();
-      throw new Error('SB1 não encontrado');
-    })
-    .then(dados => {
-      sb1Encontrado = true;
-      let sb1Array = Array.isArray(dados) ? dados : Object.values(dados);
-      // Converter para objeto indexado por SKU
-      sb1Data = {};
-      sb1Array.forEach(produto => {
-        const sku = produto.b1_cod || produto.B1_COD;
-        if (sku) {
-          sb1Data[sku] = produto;
-        }
-      });
-      localStorage.setItem('sb1Carregado', 'true');
-      sb1Carregado = true;
-      console.log('✅ SB1 carregado do cloud:', Object.keys(sb1Data).length, 'produtos');
-      tentativas++;
-      if (tentativas === totalTentativas && sa2Encontrado) {
-        preencherFornecedores();
-      }
-    })
-    .catch(e => {
-      tentativas++;
-      console.log('⚠️  SB1 não encontrado no cloud:', e.message);
-      if (tentativas === totalTentativas) {
-        if (!sa2Encontrado) {
-          mostrarModalCarregamento();
-        }
-      }
-    });
-
-  // Tentar SA2
-  fetch(caminhos[1])
-    .then(r => {
-      if (r.ok) return r.json();
-      throw new Error('SA2 não encontrado');
-    })
-    .then(dados => {
-      sa2Encontrado = true;
-      let sa2Array = Array.isArray(dados) ? dados : Object.values(dados);
-      // Extrair dados se estiverem em propriedade "items"
-      if (sa2Array[0]?.items) {
-        sa2Array = sa2Array[0].items;
-      }
-      sa2Data = sa2Array;
-      localStorage.setItem('sa2Carregado', 'true');
-      sa2Carregado = true;
-      console.log('✅ SA2 carregado do cloud:', sa2Data.length, 'fornecedores');
-      tentativas++;
-      if (tentativas === totalTentativas && sb1Encontrado) {
-        preencherFornecedores();
-      }
-    })
-    .catch(e => {
-      tentativas++;
-      console.log('⚠️  SA2 não encontrado no cloud:', e.message);
-      if (tentativas === totalTentativas) {
-        if (!sb1Encontrado) {
-          mostrarModalCarregamento();
-        }
-      }
-    });
-
-  // Se após 3 segundos nenhum foi encontrado, mostrar modal
-  setTimeout(() => {
-    if (!sb1Encontrado || !sa2Encontrado) {
-      mostrarModalCarregamento();
-    }
-  }, 3000);
+  mostrarModalCarregamento();
 }
 
 // Mostrar modal de carregamento
