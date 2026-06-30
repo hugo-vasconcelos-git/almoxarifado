@@ -193,13 +193,14 @@
 
     <!-- Seletor de endereço (visível só quando idle) -->
     <div id="seletorEndereco">
-      <button class="scan-btn" onclick="abrirCameraEndereco()" style="font-size:15px;padding:14px;margin-bottom:10px;">
-        <span class="icon">📷</span> Bipar endereço (câmera)
+      <input type="text" id="inputEndereco" placeholder="Aponte o leitor USB aqui para ler endereço" style="display:none;margin-bottom:10px;padding:12px;border:1px solid var(--border);border-radius:8px;font-family:var(--mono);font-size:14px;">
+
+      <button class="scan-btn" onclick="ativarLeitorEndereco()" style="font-size:15px;padding:14px;margin-bottom:10px;">
+        <span class="icon">📱</span> Ativar leitor USB
       </button>
-      <button class="scan-btn ghost" onclick="ativarLeitorEndereco()" style="font-size:14px;padding:12px;margin-bottom:10px;">
-        <span class="icon">📱</span> Bipar endereço por leitor USB
+      <button class="scan-btn ghost" onclick="abrirCameraEndereco()" style="font-size:14px;padding:12px;margin-bottom:10px;">
+        <span class="icon">📷</span> Ou usar câmera
       </button>
-      <input type="text" id="inputEndereco" placeholder="Leitor USB: aponte aqui" style="display:none;margin-bottom:10px;padding:10px;border:1px solid var(--border);border-radius:8px;font-family:var(--mono);">
 
       <div class="manual-wrap">
         <label>Ou selecionar manualmente</label>
@@ -221,13 +222,13 @@
       </div>
     </div>
 
-    <!-- Câmera de itens (visível só quando open) -->
+    <!-- Leitura de itens (visível só quando open) -->
     <div id="secaoItens" style="display:none;flex-direction:column;gap:14px">
-      <button class="scan-btn" onclick="abrirCamera('item')">
-        <span class="icon">📷</span> Bipar item (câmera)
+      <button class="scan-btn" onclick="ativarLeitorUsb()" style="font-size:15px;padding:14px;">
+        <span class="icon">📱</span> Bipar itens com leitor USB
       </button>
-      <button class="scan-btn ghost" onclick="ativarLeitorUsb()" style="font-size:14px;padding:12px;">
-        <span class="icon">📱</span> Bipar por leitor USB
+      <button class="scan-btn ghost" onclick="abrirCamera('item')" style="font-size:14px;padding:12px;">
+        <span class="icon">📷</span> Ou usar câmera
       </button>
 
       <!-- Input manual de item -->
@@ -251,11 +252,14 @@
     </div>
 
     <!-- Botões de ação -->
-    <button class="scan-btn green" id="btnFechar" disabled onclick="fecharEndereco()">
-      <span class="icon">🔒</span> Fechar e salvar endereço
+    <div style="padding:10px;background:rgba(52,168,224,.1);border-radius:8px;color:var(--muted);font-size:12px;text-align:center;">
+      💡 Bipa o endereço novamente para encerrar a leitura
+    </div>
+    <button class="scan-btn green" id="btnFechar" disabled onclick="fecharEndereco()" style="font-size:13px;padding:12px;">
+      <span class="icon">🔒</span> Ou clique para fechar manualmente
     </button>
     <button class="scan-btn ghost" id="btnCancelar" disabled onclick="cancelar()" style="font-size:13px;padding:12px;">
-      ✕ Cancelar
+      ✕ Cancelar leitura
     </button>
 
   </div>
@@ -900,8 +904,18 @@ function processarEndereco(codigo) {
     }
   }
 
-  abrirEndereco(rua, prat);
-  showToast(`✓ Endereço ${rua}${pratDisplay} aberto!`, 'ok');
+  // Toggle: se endereço está aberto e é o mesmo, fechar. Senão, abrir.
+  if (fase === 'open' && ruaAtual === rua && pratAtual === prat) {
+    fecharEndereco(false);
+    showToast(`✓ Endereço ${rua}${pratDisplay} fechado!`, 'ok');
+  } else {
+    // Se há endereço aberto diferente, fechar primeiro
+    if (fase === 'open') {
+      fecharEndereco(false);
+    }
+    abrirEndereco(rua, prat);
+    showToast(`✓ Endereço ${rua}${pratDisplay} aberto!`, 'ok');
+  }
 }
 
 function abrirEndereco(rua, prat) {
