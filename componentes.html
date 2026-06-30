@@ -627,6 +627,8 @@ function limparFormulario() {
   document.getElementById('etiqueta').classList.remove('show');
   document.getElementById('btnImprimir').disabled = true;
   document.getElementById('skuList').classList.remove('show');
+  // Sempre resetar data para hoje
+  document.getElementById('data').valueAsDate = new Date();
   document.getElementById('skuInput').focus();
 }
 
