@@ -184,6 +184,42 @@
     .sku-wrapper {
       position: relative;
     }
+    .header-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 15px;
+    }
+    .badge-group {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+    .badge {
+      background: #e8e8e8;
+      border-radius: 12px;
+      padding: 6px 12px;
+      font-size: 12px;
+      border: none;
+      cursor: pointer;
+      transition: all 0.2s;
+      font-weight: 600;
+      color: #666;
+    }
+    .badge:hover {
+      background: #3b6ef6;
+      color: white;
+    }
+    .badge.ready {
+      background: #d4edda;
+      color: #155724;
+      border: 1px solid #c3e6cb;
+    }
+    .badge.empty {
+      background: #f8d7da;
+      color: #721c24;
+      border: 1px solid #f5c6cb;
+    }
   </style>
 </head>
 <body>
@@ -255,9 +291,21 @@
 
 <div class="container">
   <div class="header">
-    <h1>🏷️ Etiquetas de Componentes</h1>
-    <p>Gere etiquetas de recebimento/chegada de material</p>
+    <div class="header-top">
+      <div>
+        <h1>🏷️ Etiquetas de Componentes</h1>
+        <p>Gere etiquetas de recebimento/chegada de material</p>
+      </div>
+      <div class="badge-group">
+        <button class="badge empty" id="sb1Badge" onclick="document.getElementById('sb1FileInput').click()" title="Clique para recarregar SB1">📦 SB1</button>
+        <button class="badge empty" id="sa2Badge" onclick="document.getElementById('sa2FileInput').click()" title="Clique para recarregar SA2">🏭 SA2</button>
+      </div>
+    </div>
   </div>
+
+  <!-- Inputs hidden para importar arquivos -->
+  <input type="file" id="sb1FileInput" accept=".json" style="display: none;" onchange="carregarArquivoHeader(event, 'sb1')">
+  <input type="file" id="sa2FileInput" accept=".json" style="display: none;" onchange="carregarArquivoHeader(event, 'sa2')">
 
   <div class="form-section">
     <div id="message" class="message"></div>
@@ -366,6 +414,83 @@ let numeroIncremental = 990001;
 let sb1Carregado = false;
 let sa2Carregado = false;
 
+// ─── ATUALIZAR BADGES ───
+function atualizarBadges() {
+  const sb1Badge = document.getElementById('sb1Badge');
+  const sa2Badge = document.getElementById('sa2Badge');
+
+  if (sb1Carregado) {
+    sb1Badge.classList.remove('empty');
+    sb1Badge.classList.add('ready');
+    sb1Badge.textContent = `📦 SB1 (${Object.keys(sb1Data).length})`;
+  } else {
+    sb1Badge.classList.remove('ready');
+    sb1Badge.classList.add('empty');
+    sb1Badge.textContent = '📦 SB1';
+  }
+
+  if (sa2Carregado) {
+    sa2Badge.classList.remove('empty');
+    sa2Badge.classList.add('ready');
+    sa2Badge.textContent = `🏭 SA2 (${sa2Data.length})`;
+  } else {
+    sa2Badge.classList.remove('ready');
+    sa2Badge.classList.add('empty');
+    sa2Badge.textContent = '🏭 SA2';
+  }
+}
+
+// Carregar arquivo via header
+function carregarArquivoHeader(event, tipo) {
+  const file = event.target.files[0];
+  if (!file) return;
+
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    try {
+      const conteudo = JSON.parse(e.target.result);
+
+      // Decodificar Base64 se estiver ofuscado
+      let dados = conteudo;
+      if (conteudo.data && typeof conteudo.data === 'string') {
+        dados = JSON.parse(atob(conteudo.data));
+      }
+
+      // Extrair dados se estiverem em propriedade "items"
+      if (dados.items && Array.isArray(dados.items)) {
+        dados = dados.items;
+      }
+
+      if (tipo === 'sb1') {
+        let sb1Array = Array.isArray(dados) ? dados : Object.values(dados);
+        sb1Data = {};
+        sb1Array.forEach(produto => {
+          const sku = produto.b1_cod || produto.B1_COD;
+          if (sku) {
+            sb1Data[sku] = produto;
+          }
+        });
+        localStorage.setItem('sb1Carregado', 'true');
+        sb1Carregado = true;
+      } else if (tipo === 'sa2') {
+        sa2Data = Array.isArray(dados) ? dados : Object.values(dados);
+        localStorage.setItem('sa2Carregado', 'true');
+        sa2Carregado = true;
+      }
+
+      atualizarBadges();
+      showMessage(`✅ ${tipo.toUpperCase()} carregado com sucesso!`, 'success');
+    } catch (erro) {
+      showMessage(`❌ Erro ao carregar ${tipo.toUpperCase()}`, 'error');
+      console.error(`Erro ao carregar ${tipo}:`, erro);
+    }
+  };
+  reader.readAsText(file);
+
+  // Limpar input
+  event.target.value = '';
+}
+
 // Carregar dados ao abrir página
 window.addEventListener('DOMContentLoaded', () => {
   // Restaurar número incremental
@@ -377,6 +502,12 @@ window.addEventListener('DOMContentLoaded', () => {
   // Verificar se já têm dados em localStorage
   const sb1Salvo = localStorage.getItem('sb1Carregado');
   const sa2Salvo = localStorage.getItem('sa2Carregado');
+
+  if (sb1Salvo) sb1Carregado = true;
+  if (sa2Salvo) sa2Carregado = true;
+
+  // Atualizar badges
+  atualizarBadges();
 
   if (sb1Salvo && sa2Salvo) {
     // Dados já carregados em memória
