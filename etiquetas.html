@@ -226,9 +226,9 @@
     <div>
       <label>Rua Inicial (A-Z):</label>
       <select id="ruaInicial">
-        <option>A</option><option>B</option><option>C</option><option>D</option><option>E</option>
+        <option selected>A</option><option>B</option><option>C</option><option>D</option><option>E</option>
         <option>F</option><option>G</option><option>H</option><option>I</option><option>J</option>
-        <option>K</option><option>L</option><option>M</option><option>N</option><option selected>O</option>
+        <option>K</option><option>L</option><option>M</option><option>N</option><option>O</option>
         <option>P</option><option>Q</option><option>R</option><option>S</option><option>T</option>
         <option>U</option><option>V</option><option>W</option><option>X</option><option>Y</option><option>Z</option>
       </select>
@@ -239,9 +239,9 @@
       <select id="ruaFinal">
         <option>A</option><option>B</option><option>C</option><option>D</option><option>E</option>
         <option>F</option><option>G</option><option>H</option><option>I</option><option>J</option>
-        <option>K</option><option>L</option><option>M</option><option>N</option><option selected>O</option>
+        <option>K</option><option>L</option><option>M</option><option>N</option><option>O</option>
         <option>P</option><option>Q</option><option>R</option><option>S</option><option>T</option>
-        <option>U</option><option>V</option><option>W</option><option>X</option><option>Y</option><option>Z</option>
+        <option>U</option><option>V</option><option>W</option><option>X</option><option>Y</option><option selected>Z</option>
       </select>
     </div>
 
@@ -351,7 +351,7 @@ function atualizarTamanho() {
   gerarEtiquetas();
 }
 
-// Gerar ao carregar (padrão: todas as prateleiras da rua O)
+// Gerar ao carregar (padrão: todas as prateleiras das ruas A-Z)
 window.addEventListener('load', () => {
   setTimeout(gerarEtiquetas, 500);
 });
