@@ -531,7 +531,8 @@ window.addEventListener('DOMContentLoaded', () => {
   document.getElementById('manualSku').addEventListener('keydown', e => {
     if (e.key==='Enter'){
       e.preventDefault();
-      if (modoLeitor) {
+      // Quando endereço está aberto OU em modo leitor, detectar se é endereço ou componente
+      if (fase === 'open' || modoLeitor) {
         processarLeituraComponenteOuEndereco();
       } else {
         processarManual();
