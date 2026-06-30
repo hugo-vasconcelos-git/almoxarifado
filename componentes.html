@@ -407,6 +407,11 @@ function carregarArquivo(event, tipo) {
         dados = JSON.parse(atob(conteudo.data));
       }
 
+      // Extrair dados se estiverem em propriedade "items"
+      if (dados.items && Array.isArray(dados.items)) {
+        dados = dados.items;
+      }
+
       if (tipo === 'sb1') {
         sb1Data = Array.isArray(dados) ? dados : Object.values(dados);
         // Não salvar em localStorage (muito grande), manter em memória
@@ -416,6 +421,7 @@ function carregarArquivo(event, tipo) {
         document.getElementById('sb1Status').textContent = `✅ ${qtdProdutos} produtos carregados`;
         document.getElementById('sb1Icon').textContent = '✓';
         document.getElementById('sb1Text').textContent = 'SB1.json carregado';
+        console.log('SB1 carregado:', qtdProdutos, 'produtos');
       } else if (tipo === 'sa2') {
         sa2Data = Array.isArray(dados) ? dados : Object.values(dados);
         // Não salvar em localStorage (poderia exceder quota), manter em memória
@@ -424,6 +430,7 @@ function carregarArquivo(event, tipo) {
         document.getElementById('sa2Status').textContent = `✅ ${sa2Data.length} fornecedores carregados`;
         document.getElementById('sa2Icon').textContent = '✓';
         document.getElementById('sa2Text').textContent = 'SA2.json carregado';
+        console.log('SA2 carregado:', sa2Data.length, 'fornecedores, primeiro:', sa2Data[0]?.a2_nreduz);
       }
 
       // Habilitar botão se ambos carregados
