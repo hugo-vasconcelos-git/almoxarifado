@@ -858,12 +858,16 @@ function gerarEtiquetasEmLote() {
       <div style="border: 1px solid #000; padding: 0.7mm 1mm; flex: 1; font-family: Arial; display: flex; gap: 0.8mm; overflow: hidden;">
         <!-- ESQUERDA: LOGO + QR -->
         <div style="width: 2.8cm; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.3mm; flex-shrink: 0;">
-          <svg width="28mm" height="5mm" viewBox="0 0 140 25" xmlns="http://www.w3.org/2000/svg" style="margin-bottom: 0.5mm;">
-            <text x="0" y="18" font-size="16" font-weight="bold" font-family="Arial" fill="#000">AUDAX</text>
-            <line x1="70" y1="2" x2="130" y2="2" stroke="#000" stroke-width="1.5"/>
-            <line x1="70" y1="8" x2="130" y2="8" stroke="#000" stroke-width="1.5"/>
-            <line x1="70" y1="14" x2="130" y2="14" stroke="#000" stroke-width="1.5"/>
-            <line x1="70" y1="20" x2="130" y2="20" stroke="#000" stroke-width="1.5"/>
+          <svg width="28mm" height="6mm" viewBox="0 0 140 30" xmlns="http://www.w3.org/2000/svg" style="margin-bottom: 0.3mm;">
+            <!-- AUDAX Text -->
+            <text x="0" y="16" font-size="14" font-weight="900" font-family="Arial, sans-serif" fill="#000">AUDAX</text>
+            <!-- ELECTRONICS Text -->
+            <text x="0" y="25" font-size="6" font-weight="bold" font-family="Arial, sans-serif" fill="#000">ELECTRONICS</text>
+            <!-- Barras verticais -->
+            <rect x="110" y="2" width="3" height="22" fill="#000"/>
+            <rect x="117" y="2" width="3" height="22" fill="#000"/>
+            <rect x="124" y="2" width="3" height="22" fill="#000"/>
+            <rect x="131" y="2" width="3" height="22" fill="#000"/>
           </svg>
           <div id="${qrId}" style="display: inline-block;"></div>
         </div>
