@@ -859,6 +859,11 @@ function abrirEndereco(rua, prat) {
   document.getElementById('btnFechar').disabled   = false;
   document.getElementById('btnCancelar').disabled = false;
   showToast(`📂 RUA ${rua} · Prat. ${prat} aberta`, 'ok');
+
+  // Ativar modo leitor automaticamente após abrir endereço
+  setTimeout(() => {
+    ativarLeitorUsb();
+  }, 300);
 }
 
 function fecharEndereco(mudarAba = true) {
