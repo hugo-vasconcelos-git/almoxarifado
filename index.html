@@ -523,7 +523,14 @@ window.addEventListener('DOMContentLoaded', () => {
 
   // Listeners para campo de SKU
   document.getElementById('manualSku').addEventListener('keydown', e => {
-    if (e.key==='Enter'){e.preventDefault();processarManual();}
+    if (e.key==='Enter'){
+      e.preventDefault();
+      if (modoLeitor) {
+        processarLeituraComponenteOuEndereco();
+      } else {
+        processarManual();
+      }
+    }
   });
   document.getElementById('manualQty').addEventListener('keydown', e => {
     if (e.key==='Enter'){e.preventDefault();processarManual();}
@@ -811,6 +818,36 @@ function ativarLeitorUsb() {
     input.focus();
     showToast('📱 Modo leitor ativo! Aponte quantas vezes quiser', 'ok');
   }
+}
+
+// Processa leitura do leitor: detecta se é endereço ou componente
+function processarLeituraComponenteOuEndereco() {
+  const input = document.getElementById('manualSku');
+  const codigo = input.value.trim().toUpperCase();
+
+  if (!codigo) return;
+
+  // Verificar se é endereço (A01, SB01, SD1, etc)
+  const enderecoMatch = codigo.match(/^([A-Z]|SB|SD)(\d{1,3}|[A-B])?$/i);
+  const isEndereco = enderecoMatch && (
+    // A-Z com 1-3 dígitos
+    (codigo.match(/^[A-Z]\d{1,3}$/)) ||
+    // SB com 1-2 dígitos ou A-B
+    (codigo.match(/^SB(\d{1,2}|[A-B])$/)) ||
+    // SD com 1 dígito (1-4)
+    (codigo.match(/^SD[1-4]$/))
+  );
+
+  if (isEndereco) {
+    // É um endereço - processar como tal
+    processarEndereco(codigo);
+  } else {
+    // É um componente/SKU
+    processarManual();
+  }
+
+  input.value = '';
+  input.focus();
 }
 
 function adicionarItem(sku, qty) {
@@ -1761,9 +1798,6 @@ function mostrarModalUsuario() {
 
 // Enter no campo manual
 document.addEventListener('DOMContentLoaded',()=>{
-  document.getElementById('manualSku').addEventListener('keydown',e=>{
-    if(e.key==='Enter'){e.preventDefault();processarManual();}
-  });
   document.getElementById('manualQty').addEventListener('keydown',e=>{
     if(e.key==='Enter'){e.preventDefault();processarManual();}
   });
