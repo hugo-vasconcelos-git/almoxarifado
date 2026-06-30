@@ -256,6 +256,7 @@
       <button onclick="gerarEtiqueta()">🏷️ Gerar Etiqueta</button>
       <button onclick="imprimirEtiqueta()" id="btnImprimir" disabled>🖨️ Imprimir</button>
       <button onclick="limparFormulario()" style="background: #6c757d;">🗑️ Limpar</button>
+      <button onclick="abrirModalSA2()" style="background: #f5a623;">📦 Trocar Fornecedores</button>
     </div>
   </div>
 
@@ -302,9 +303,16 @@
 <script>
 let sb1Data = {};
 let sa2Data = {};
+let numeroIncremental = 990001;
 
 // Carregar dados ao abrir página
 window.addEventListener('DOMContentLoaded', () => {
+  // Restaurar número incremental
+  const numSalvo = localStorage.getItem('numeroIncremental');
+  if (numSalvo) {
+    numeroIncremental = parseInt(numSalvo);
+  }
+
   const sa2Carregado = localStorage.getItem('sa2Carregado');
   if (!sa2Carregado) {
     document.getElementById('modalSA2').style.display = 'flex';
@@ -363,9 +371,19 @@ function carregarSA2Upload(event) {
   reader.readAsText(file);
 }
 
+// Abrir modal novamente
+function abrirModalSA2() {
+  document.getElementById('modalSA2').style.display = 'flex';
+  document.getElementById('sa2Status').textContent = '';
+  document.getElementById('sa2FileInput').value = '';
+}
+
 // Confirmar e fechar modal
 function confirmarSA2() {
-  if (sa2Data.length === 0) return;
+  if (sa2Data.length === 0) {
+    document.getElementById('sa2Status').textContent = '❌ Nenhum arquivo carregado';
+    return;
+  }
   document.getElementById('modalSA2').style.display = 'none';
   preencherFornecedores();
 }
@@ -379,20 +397,29 @@ function preencherFornecedores() {
     select.remove(1);
   }
 
-  // Usar coluna a2_nreduz (nome reduzido do fornecedor)
-  const fornecedores = Array.isArray(sa2Data) ? sa2Data : Object.values(sa2Data);
+  if (!sa2Data || sa2Data.length === 0) {
+    console.warn('SA2Data vazio:', sa2Data);
+    return;
+  }
 
-  const nomes = [...new Set(fornecedores.map(f => f.a2_nreduz || f.nome).filter(n => n))]
-    .sort();
+  // Extrair nomes reduzidos únicos
+  const nomes = new Set();
+  sa2Data.forEach(fornecedor => {
+    const nome = fornecedor.a2_nreduz || fornecedor.A2_NREDUZ || fornecedor.nome || fornecedor.name;
+    if (nome && typeof nome === 'string') {
+      nomes.add(nome.trim());
+    }
+  });
 
-  nomes.forEach(nome => {
+  const nomesArray = Array.from(nomes).sort();
+  nomesArray.forEach(nome => {
     const opt = document.createElement('option');
     opt.value = nome;
     opt.textContent = nome;
     select.appendChild(opt);
   });
 
-  console.log('Fornecedores carregados:', nomes.length);
+  console.log('Fornecedores carregados:', nomesArray.length, nomesArray.slice(0, 5));
 }
 
 // Autocomplete para SKU
@@ -455,10 +482,11 @@ function gerarEtiqueta() {
   document.getElementById('etiq-data').textContent = data ? new Date(data).toLocaleDateString('pt-BR') : '';
   document.getElementById('etiq-nf').textContent = nf || '—';
 
-  // Gerar QR Code
+  // Gerar QR Code com formato SKU-quantidade-numero_incremental
+  const qrContent = `${sku}-${quantidade}-${numeroIncremental}`;
   document.getElementById('qrCode').innerHTML = '';
   new QRCode(document.getElementById('qrCode'), {
-    text: sku,
+    text: qrContent,
     width: 80,
     height: 80,
     colorDark: '#000000',
@@ -473,6 +501,10 @@ function gerarEtiqueta() {
     height: 100,
     displayValue: false
   });
+
+  // Incrementar número e salvar em localStorage
+  numeroIncremental++;
+  localStorage.setItem('numeroIncremental', numeroIncremental);
 
   // Mostrar etiqueta
   document.getElementById('etiqueta').classList.add('show');
