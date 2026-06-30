@@ -398,6 +398,11 @@
       <input type="text" id="skuInput" placeholder="Digite ou leia com leitor USB (SKU-quantidade-numero)">
     </div>
 
+    <div class="form-group">
+      <label for="descricaoSku">Descrição</label>
+      <input type="text" id="descricaoSku" placeholder="Descrição do produto (auto)" disabled>
+    </div>
+
     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
       <div class="form-group">
         <label for="quantidade">Quantidade *</label>
@@ -499,9 +504,17 @@ function atualizarBadgeSB1() {
   }
 }
 
-// ─── DETECÇÃO AUTOMÁTICA DE QR CODE ───
+// ─── DETECÇÃO AUTOMÁTICA DE QR CODE E DESCRIÇÃO ───
 document.getElementById('skuInput').addEventListener('input', (e) => {
   const valor = e.target.value.trim();
+
+  // Buscar descrição na SB1
+  const produto = sb1Data[valor];
+  if (produto) {
+    document.getElementById('descricaoSku').value = produto.desc || '';
+  } else {
+    document.getElementById('descricaoSku').value = '';
+  }
 
   if (valor.includes('-')) {
     const partes = valor.split('-');
@@ -512,6 +525,13 @@ document.getElementById('skuInput').addEventListener('input', (e) => {
       if (!isNaN(quantidade) && quantidade > 0) {
         document.getElementById('skuInput').value = sku;
         document.getElementById('quantidade').value = quantidade;
+
+        // Buscar descrição do novo SKU
+        const produtoQR = sb1Data[sku];
+        if (produtoQR) {
+          document.getElementById('descricaoSku').value = produtoQR.desc || '';
+        }
+
         document.getElementById('localizacao').focus();
       }
     }
@@ -573,11 +593,16 @@ function renderizarEtiquetas() {
     const el = document.createElement('div');
     el.className = 'etiqueta';
 
+    // Formatar data como DD/MM/YY
+    const hoje = new Date();
+    const dataFormatada = `${String(hoje.getDate()).padStart(2, '0')}/${String(hoje.getMonth() + 1).padStart(2, '0')}/${String(hoje.getFullYear()).slice(-2)}`;
+
     el.innerHTML = `
       <div class="etiqueta-esquerda">
         <div class="etiqueta-sku">${etiqueta.sku}</div>
         <div class="etiqueta-quantidade">${etiqueta.quantidade} ${etiqueta.um}</div>
         <div class="etiqueta-localizacao">${etiqueta.localizacao}</div>
+        <div style="font-size: 5px; color: #333; margin-top: 0.5mm;">${dataFormatada}</div>
       </div>
       <div class="etiqueta-qr" id="${qrId}"></div>
     `;
