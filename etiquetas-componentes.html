@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Etiquetas de Componentes - Almoxarifado</title>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+  <script src="https://unpkg.com/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
 
@@ -220,6 +221,116 @@
       padding: 0;
     }
 
+    /* MODAL EXCEL */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.8);
+      z-index: 1000;
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+
+    .modal-overlay.active {
+      display: flex;
+    }
+
+    .modal-content {
+      background: white;
+      border-radius: 8px;
+      padding: 25px;
+      width: 100%;
+      max-width: 500px;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+    }
+
+    .modal-title {
+      font-size: 18px;
+      font-weight: bold;
+      margin-bottom: 10px;
+      color: #333;
+    }
+
+    .modal-desc {
+      font-size: 13px;
+      color: #666;
+      margin-bottom: 20px;
+      line-height: 1.5;
+    }
+
+    .modal-dropzone {
+      background: #f5f5f5;
+      border: 2px dashed #3b6ef6;
+      border-radius: 6px;
+      padding: 20px;
+      text-align: center;
+      cursor: pointer;
+      margin-bottom: 15px;
+      transition: all 0.2s;
+    }
+
+    .modal-dropzone:hover {
+      background: #efefff;
+      border-color: #2653d4;
+    }
+
+    .modal-dropzone-icon {
+      font-size: 32px;
+      margin-bottom: 8px;
+    }
+
+    .modal-dropzone-text {
+      font-weight: 600;
+      color: #333;
+      font-size: 14px;
+      margin-bottom: 4px;
+    }
+
+    .modal-dropzone-hint {
+      font-size: 12px;
+      color: #999;
+    }
+
+    .modal-status {
+      font-size: 12px;
+      color: #666;
+      margin-bottom: 15px;
+      text-align: center;
+    }
+
+    .modal-buttons {
+      display: flex;
+      gap: 10px;
+    }
+
+    .modal-buttons button {
+      flex: 1;
+      padding: 10px;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-weight: bold;
+      font-size: 13px;
+    }
+
+    .modal-btn-cancel {
+      background: #ccc;
+      color: white;
+    }
+
+    .modal-btn-confirm {
+      background: #3b6ef6;
+      color: white;
+    }
+
+    .modal-btn-confirm:disabled {
+      background: #999;
+      cursor: not-allowed;
+    }
+
     @media print {
       body {
         margin: 0;
@@ -242,6 +353,29 @@
   </style>
 </head>
 <body>
+
+<!-- MODAL IMPORTAR EXCEL -->
+<div id="modalExcel" class="modal-overlay">
+  <div class="modal-content">
+    <div class="modal-title">📊 Importar Excel</div>
+    <div class="modal-desc">Selecione um arquivo .xlsx com a coluna "QTDE AJUSTADA". Serão importados registros com emoji 🏷️</div>
+
+    <div class="modal-dropzone" onclick="document.getElementById('excelInput').click()">
+      <div class="modal-dropzone-icon">📁</div>
+      <div class="modal-dropzone-text">Clique para selecionar arquivo</div>
+      <div class="modal-dropzone-hint">ou arraste aqui</div>
+    </div>
+
+    <input type="file" id="excelInput" accept=".xlsx" style="display: none;" onchange="carregarExcel(event)">
+
+    <div id="excelStatus" class="modal-status"></div>
+
+    <div class="modal-buttons">
+      <button class="modal-btn-cancel" onclick="fecharModalExcel()">Cancelar</button>
+      <button class="modal-btn-confirm" id="excelConfirmBtn" onclick="importarExcel()" disabled>Importar</button>
+    </div>
+  </div>
+</div>
 
 <div class="container">
   <div class="header">
@@ -278,6 +412,7 @@
     <div class="button-group">
       <button onclick="adicionarEtiqueta()">➕ Adicionar</button>
       <button onclick="imprimirEtiquetas()" class="print-btn" disabled>🖨️ Imprimir</button>
+      <button onclick="abrirModalExcel()" style="background: #27ae60;">📊 Importar Excel</button>
       <button onclick="limparEtiquetas()" class="danger">🗑️ Limpar</button>
     </div>
   </div>
@@ -506,6 +641,111 @@ function showMessage(msg, tipo) {
   setTimeout(() => {
     el.style.display = 'none';
   }, 3000);
+}
+
+// ─── IMPORTAR EXCEL ───
+let excelDados = [];
+
+function abrirModalExcel() {
+  document.getElementById('modalExcel').classList.add('active');
+}
+
+function fecharModalExcel() {
+  document.getElementById('modalExcel').classList.remove('active');
+  document.getElementById('excelInput').value = '';
+  document.getElementById('excelStatus').textContent = '';
+  document.getElementById('excelConfirmBtn').disabled = true;
+  excelDados = [];
+}
+
+function carregarExcel(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    try {
+      const dados = new Uint8Array(e.target.result);
+      const workbook = XLSX.read(dados, { type: 'array' });
+      const planilha = workbook.Sheets[workbook.SheetNames[0]];
+      const registros = XLSX.utils.sheet_to_json(planilha);
+
+      // Filtrar registros com 🏷️ na coluna "QTDE AJUSTADA"
+      excelDados = registros.filter(reg => {
+        const qtdeAjustada = reg['QTDE AJUSTADA'] || reg['Qtde Ajustada'] || reg['qtde_ajustada'] || '';
+        return qtdeAjustada.toString().includes('🏷️');
+      });
+
+      if (excelDados.length === 0) {
+        showMessage('⚠️ Nenhum registro com 🏷️ encontrado', 'error');
+        document.getElementById('excelStatus').textContent = '❌ Nenhum item para importar';
+        document.getElementById('excelConfirmBtn').disabled = true;
+      } else {
+        document.getElementById('excelStatus').textContent = `✅ ${excelDados.length} registro(s) encontrado(s)`;
+        document.getElementById('excelConfirmBtn').disabled = false;
+      }
+    } catch (erro) {
+      showMessage('❌ Erro ao processar Excel', 'error');
+      console.error('Erro:', erro);
+      document.getElementById('excelConfirmBtn').disabled = true;
+    }
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+function importarExcel() {
+  if (excelDados.length === 0) {
+    showMessage('❌ Nenhum dado para importar', 'error');
+    return;
+  }
+
+  // Encontrar colunas
+  const colunas = Object.keys(excelDados[0]);
+  const colSKU = colunas.find(col => col.toUpperCase().includes('CÓDIGO') || col.toUpperCase().includes('SKU'));
+  const colQtde = colunas.find(col => col.toUpperCase().includes('QTD') || col.toUpperCase().includes('QUANTIDADE'));
+  const colLocal = colunas.find(col => col.toUpperCase().includes('LOCAL') || col.toUpperCase().includes('LOCALIZACAO'));
+
+  if (!colSKU || !colQtde) {
+    showMessage('❌ Colunas SKU ou Quantidade não encontradas', 'error');
+    return;
+  }
+
+  let adicionadas = 0;
+
+  excelDados.forEach(reg => {
+    const sku = reg[colSKU];
+    const qtde = parseInt(reg[colQtde]) || 1;
+    const localizacao = reg[colLocal] || 'N/A';
+
+    if (sku) {
+      // Buscar dados do SB1
+      const produto = sb1Data[sku] || {};
+      const um = produto.um || 'PC';
+
+      const qrText = `${sku}-${qtde}-${numeroSequencial}`;
+
+      etiquetas.push({
+        sku,
+        quantidade: qtde,
+        um,
+        localizacao,
+        qrText,
+        numero: numeroSequencial
+      });
+
+      numeroSequencial++;
+      adicionadas++;
+    }
+  });
+
+  if (adicionadas > 0) {
+    localStorage.setItem('numeroSequencial', numeroSequencial);
+    renderizarEtiquetas();
+    showMessage(`✅ ${adicionadas} etiqueta(s) adicionada(s)`, 'success');
+    fecharModalExcel();
+  } else {
+    showMessage('❌ Nenhuma etiqueta foi adicionada', 'error');
+  }
 }
 </script>
 
