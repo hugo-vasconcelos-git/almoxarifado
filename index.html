@@ -116,6 +116,24 @@
   .rua-cel:active{transform:scale(.92);}
   .rua-cel.sel{background:var(--accent);color:#fff;border-color:var(--accent);}
 
+  /* ── SINALIZADOR DE STATUS ── */
+  .status-indicator {
+    width: 100%;
+    height: 8px;
+    background: #22c55e;
+    border-radius: 4px;
+    margin-bottom: 12px;
+    transition: background 0.3s ease;
+  }
+  .status-indicator.reading {
+    background: #eab308;
+    animation: pulse 0.6s infinite;
+  }
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.7; }
+  }
+
   /* ── TOAST ── */
   #toast{position:fixed;bottom:80px;left:50%;transform:translateX(-50%) translateY(10px);background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:10px 18px;font-size:13px;font-weight:500;opacity:0;transition:all .25s;pointer-events:none;z-index:200;white-space:nowrap;}
   #toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
@@ -170,6 +188,9 @@
     <div class="user-avatar" id="userAvatar" onclick="mostrarModalUsuario()" title="Clique para alterar usuário">--</div>
   </div>
 </div>
+
+<!-- SINALIZADOR DE STATUS -->
+<div class="status-indicator" id="statusIndicator"></div>
 
 <!-- TABS -->
 <div class="tabs">
@@ -451,6 +472,9 @@ function atualizarPrateleiras(rua) {
    INIT SELETOR
 ══════════════════════════════════ */
 window.addEventListener('DOMContentLoaded', () => {
+  // Inicializar sinalizador em VERDE
+  atualizarSinalizador('closed');
+
   // Grid de ruas
   const grid = document.getElementById('ruaGrid');
   RUAS.forEach(r => {
@@ -872,6 +896,47 @@ function abrirCameraEndereco() {
   }
 }
 
+/* ── ÁUDIO E SINALIZADORES ── */
+function atualizarSinalizador(estado) {
+  const indicator = document.getElementById('statusIndicator');
+  if (estado === 'open') {
+    // AMARELO: em leitura
+    indicator.classList.add('reading');
+    indicator.title = 'Em leitura de componentes';
+  } else {
+    // VERDE: pronto para abrir
+    indicator.classList.remove('reading');
+    indicator.title = 'Pronto para abrir endereço';
+  }
+}
+
+function beepFechamento() {
+  try {
+    const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+    const now = audioContext.currentTime;
+    const frequency = 800;
+    const duration = 0.1;
+
+    for (let i = 0; i < 3; i++) {
+      const startTime = now + (i * 0.15);
+      const osc = audioContext.createOscillator();
+      const gain = audioContext.createGain();
+
+      osc.frequency.value = frequency;
+      osc.type = 'sine';
+      gain.gain.setValueAtTime(0.3, startTime);
+      gain.gain.exponentialRampToValueAtTime(0.01, startTime + duration);
+
+      osc.connect(gain);
+      gain.connect(audioContext.destination);
+      osc.start(startTime);
+      osc.stop(startTime + duration);
+    }
+  } catch (e) {
+    console.log('Audio context não disponível');
+  }
+}
+
 function processarEndereco(codigo) {
   // Formato esperado: A01, B05, L54, SB1, SB27, SBA, SBB, SD01-SD04, etc
   let match = codigo.match(/^(SB)([1-9]|1[0-9]|2[0-7]|[AB])$/i);
@@ -927,6 +992,7 @@ function abrirEndereco(rua, prat) {
   document.getElementById('btnFechar').disabled   = false;
   document.getElementById('btnCancelar').disabled = false;
   showToast(`📂 RUA ${rua} · Prat. ${prat} aberta`, 'ok');
+  atualizarSinalizador('open');
 
   // Ativar modo leitor automaticamente após abrir endereço
   setTimeout(() => {
@@ -950,6 +1016,8 @@ function fecharEndereco(mudarAba = true) {
   });
   atualizarLogBadge();
   renderLog();
+  beepFechamento();
+  atualizarSinalizador('closed');
   showToast(`✅ RUA ${ruaAtual} · Prat. ${pratAtual} salva!`, 'ok');
 
   if (mudarAba) {
@@ -973,6 +1041,7 @@ function cancelar(silencioso=false) {
   renderLista();
   document.getElementById('btnFechar').disabled   = true;
   document.getElementById('btnCancelar').disabled = true;
+  atualizarSinalizador('closed');
   if (!silencioso) showToast('Leitura cancelada', 'warn');
 }
 
