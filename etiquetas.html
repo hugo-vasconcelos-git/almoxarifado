@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Gerador de Etiquetas - Almoxarifado</title>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+  <script src="https://www.zebra.com/content/dam/zebra_new_ia/en-us/software/browser-print/1-1-0-48/BrowserPrint-1.1.0.js"></script>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
@@ -178,6 +179,21 @@
       padding: 0;
     }
 
+    @media print {
+      html, body {
+        width: 5.35cm;
+        height: 2.35cm;
+        margin: 0;
+        padding: 0;
+      }
+      .container {
+        width: 5.35cm;
+        height: 2.35cm;
+        margin: 0;
+        padding: 0;
+      }
+    }
+
     .stats {
       background: #f0f0f0;
       padding: 10px;
@@ -235,7 +251,8 @@
 
     <div class="button-group">
       <button onclick="gerarEtiquetas()">📋 Gerar Etiquetas</button>
-      <button onclick="window.print()" style="background: #00c9a7;">🖨️ Imprimir</button>
+      <button onclick="imprimirDiretoZebra()" style="background: #00c9a7;">🖨️ Imprimir Direto</button>
+      <button onclick="window.print()" style="background: #2196F3;">📄 Preview Impressão</button>
       <button onclick="limparEtiquetas()" style="background: #e84040;">🗑️ Limpar</button>
     </div>
   </div>
@@ -329,6 +346,53 @@ function atualizarTamanho() {
   gerarEtiquetas();
 }
 
+// Imprimir direto para impressora Zebra via Browser Print
+function imprimirDiretoZebra() {
+  // Verificar se Zebra Browser Print está disponível
+  if (typeof BrowserPrint === 'undefined') {
+    alert('❌ Zebra Browser Print não está instalado.\n\nBaixe em: https://www.zebra.com/en-us/software/utilities/browser-print.html');
+    return;
+  }
+
+  // Obter etiquetas
+  const etiquetas = document.querySelectorAll('.etiqueta');
+  if (etiquetas.length === 0) {
+    alert('Gere as etiquetas primeiro!');
+    return;
+  }
+
+  // Criar conteúdo ZPL
+  let zplContent = '';
+  etiquetas.forEach(etiqueta => {
+    const rua = etiqueta.querySelector('h2').textContent;
+    const pratText = etiqueta.querySelector('p').textContent;
+    const codigoText = etiqueta.querySelector('p:nth-of-type(3)').textContent;
+
+    zplContent += '^XA\n';
+    zplContent += '^MMT\n';
+    zplContent += '^PW407\n';
+    zplContent += '^LL287\n';
+    zplContent += `^FO20,30^A0N,60,40^FD${rua}^FS\n`;
+    zplContent += `^FO20,100^A0N,30,20^FD${pratText}^FS\n`;
+    zplContent += `^FO230,30^A0N,50,35^FD${codigoText}^FS\n`;
+    zplContent += `^FO230,95^BQN,2,2^FD${codigoText}^FS\n`;
+    zplContent += '^PQ1^XZ\n';
+  });
+
+  // Enviar para impressora Zebra
+  BrowserPrint.getDefaultPrinter((printer) => {
+    if (!printer) {
+      alert('❌ Nenhuma impressora Zebra encontrada.\n\nVerifique a instalação do Zebra Browser Print e se a impressora está conectada.');
+      return;
+    }
+
+    printer.send(zplContent, () => {
+      alert(`✅ ${etiquetas.length} etiqueta(s) enviadas para Zebra ZD220!`);
+    }, (error) => {
+      alert(`❌ Erro: ${error}`);
+    });
+  });
+}
 
 // Gerar ao carregar (padrão: todas as prateleiras da rua O)
 window.addEventListener('load', () => {
