@@ -413,15 +413,23 @@ function carregarArquivo(event, tipo) {
       }
 
       if (tipo === 'sb1') {
-        sb1Data = Array.isArray(dados) ? dados : Object.values(dados);
+        // Converter para objeto indexado por SKU
+        let sb1Array = Array.isArray(dados) ? dados : Object.values(dados);
+        sb1Data = {};
+        sb1Array.forEach(produto => {
+          const sku = produto.b1_cod || produto.B1_COD;
+          if (sku) {
+            sb1Data[sku] = produto;
+          }
+        });
         // Não salvar em localStorage (muito grande), manter em memória
         localStorage.setItem('sb1Carregado', 'true');
         sb1Carregado = true;
-        const qtdProdutos = Array.isArray(sb1Data) ? sb1Data.length : Object.keys(sb1Data).length;
+        const qtdProdutos = Object.keys(sb1Data).length;
         document.getElementById('sb1Status').textContent = `✅ ${qtdProdutos} produtos carregados`;
         document.getElementById('sb1Icon').textContent = '✓';
         document.getElementById('sb1Text').textContent = 'SB1.json carregado';
-        console.log('SB1 carregado:', qtdProdutos, 'produtos');
+        console.log('SB1 carregado:', qtdProdutos, 'produtos, primeiro:', Object.keys(sb1Data)[0]);
       } else if (tipo === 'sa2') {
         sa2Data = Array.isArray(dados) ? dados : Object.values(dados);
         // Não salvar em localStorage (poderia exceder quota), manter em memória
