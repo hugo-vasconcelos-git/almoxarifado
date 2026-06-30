@@ -235,7 +235,8 @@
 
     <div class="button-group">
       <button onclick="gerarEtiquetas()">📋 Gerar Etiquetas</button>
-      <button onclick="gerarZPL()" style="background: #ff9800;">🖨️ Gerar ZPL (Zebra)</button>
+      <button onclick="gerarZPL()" style="background: #ff9800;">🖨️ Gerar ZPL</button>
+      <button onclick="gerarNLBL()" style="background: #9c27b0;">📄 Gerar .NLBL</button>
       <button onclick="window.print()" style="background: #00c9a7;">🖨️ Imprimir</button>
       <button onclick="limparEtiquetas()" style="background: #e84040;">🗑️ Limpar</button>
     </div>
@@ -400,6 +401,123 @@ function gerarZPL() {
     win.document.write('<textarea style="width:100%;height:90%;font-family:monospace;">' + zplCode + '</textarea>');
     win.document.write('</body></html>');
   });
+}
+
+// Gerar arquivo .NLBL para Zebra Designer
+function gerarNLBL() {
+  const ruaInicial = document.getElementById('ruaInicial').value;
+  const ruaFinal = document.getElementById('ruaFinal').value;
+  const pratInicial = parseInt(document.getElementById('pratInicial').value);
+  const pratFinal = parseInt(document.getElementById('pratFinal').value);
+
+  // Template XML para .NLBL (Zebra Label Format)
+  let nlblContent = `<?xml version="1.0" encoding="utf-8"?>
+<label version="8.1" xmlns="http://www.zebra.com/rfl/view/label">
+  <printerProfile name="ZDesigner ZD220">
+    <propertySet name="PrinterProfile">
+      <property name="PrinterName">ZDesigner ZD220-203dpi ZPL</property>
+      <property name="MediaWidth">2.0</property>
+      <property name="MediaHeight">0.8</property>
+      <property name="MediaType">Roll</property>
+      <property name="Orientation">Landscape</property>
+      <property name="PrintSpeed">6</property>
+      <property name="Darkness">15</property>
+      <property name="PrintMethod">Thermal</property>
+      <property name="ResolutionInDpi">203</property>
+    </propertySet>
+  </printerProfile>
+
+  <pageSetup>
+    <propertySet name="PageSetup">
+      <property name="PageWidth">2.0in</property>
+      <property name="PageHeight">0.8in</property>
+      <property name="LeftMargin">0.0in</property>
+      <property name="TopMargin">0.0in</property>
+      <property name="RightMargin">0.0in</property>
+      <property name="BottomMargin">0.0in</property>
+    </propertySet>
+  </pageSetup>
+
+  <objects>
+    <!-- Template de exemplo: Rua A01 -->
+    <barcode name="QRCode_A01" type="QR Code">
+      <propertySet name="Bounds">
+        <property name="X">1.3in</property>
+        <property name="Y">0.1in</property>
+        <property name="Width">0.6in</property>
+        <property name="Height">0.6in</property>
+      </propertySet>
+      <propertySet name="General">
+        <property name="Name">QRCode_A01</property>
+        <property name="DataToEncode">A01</property>
+      </propertySet>
+    </barcode>
+
+    <text name="Text_Rua">
+      <propertySet name="Bounds">
+        <property name="X">0.05in</property>
+        <property name="Y">0.15in</property>
+        <property name="Width">0.4in</property>
+        <property name="Height">0.3in</property>
+      </propertySet>
+      <propertySet name="Appearance">
+        <property name="FontName">Arial</property>
+        <property name="FontSize">36</property>
+        <property name="Bold">true</property>
+      </propertySet>
+      <propertySet name="General">
+        <property name="Name">Text_Rua</property>
+        <property name="DataToEncode">A</property>
+      </propertySet>
+    </text>
+
+    <text name="Text_Prateleir">
+      <propertySet name="Bounds">
+        <property name="X">0.05in</property>
+        <property name="Y">0.5in</property>
+        <property name="Width">0.4in</property>
+        <property name="Height">0.25in</property>
+      </propertySet>
+      <propertySet name="Appearance">
+        <property name="FontName">Arial</property>
+        <property name="FontSize">14</property>
+      </propertySet>
+      <propertySet name="General">
+        <property name="Name">Text_Prateleir</property>
+        <property name="DataToEncode">Prat 01</property>
+      </propertySet>
+    </text>
+
+    <text name="Text_Codigo">
+      <propertySet name="Bounds">
+        <property name="X">0.8in</property>
+        <property name="Y">0.1in</property>
+        <property name="Width">0.5in</property>
+        <property name="Height">0.35in</property>
+      </propertySet>
+      <propertySet name="Appearance">
+        <property name="FontName">Arial</property>
+        <property name="FontSize">28</property>
+        <property name="Bold">true</property>
+      </propertySet>
+      <propertySet name="General">
+        <property name="Name">Text_Codigo</property>
+        <property name="DataToEncode">A01</property>
+      </propertySet>
+    </text>
+  </objects>
+</label>`;
+
+  // Baixar arquivo
+  const blob = new Blob([nlblContent], { type: 'application/xml' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = `Etiquetas_${ruaInicial}-${ruaFinal}_${pratInicial}-${pratFinal}.nlbl`;
+  link.click();
+  URL.revokeObjectURL(url);
+
+  alert(`✅ Arquivo .NLBL gerado!\n\n📝 Instruções:\n1. Abra "Etiquetas_${ruaInicial}-${ruaFinal}.nlbl" no Zebra Designer\n2. Edite os campos de dados com sua informação\n3. Clique em Imprimir`);
 }
 
 // Gerar ao carregar (padrão: todas as prateleiras da rua O)
