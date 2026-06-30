@@ -601,8 +601,8 @@ function renderizarEtiquetas() {
       <div class="etiqueta-esquerda">
         <div class="etiqueta-sku">${etiqueta.sku}</div>
         <div class="etiqueta-quantidade">${etiqueta.quantidade} ${etiqueta.um}</div>
-        <div class="etiqueta-localizacao">${etiqueta.localizacao}</div>
-        <div style="font-size: 5px; color: #333; margin-top: 0.5mm;">${dataFormatada}</div>
+        <div class="etiqueta-localizacao" style="margin-bottom: 0.3mm;">${etiqueta.localizacao}</div>
+        <div style="font-size: 8px; color: #666; line-height: 1;">${dataFormatada}</div>
       </div>
       <div class="etiqueta-qr" id="${qrId}"></div>
     `;
